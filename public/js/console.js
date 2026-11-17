@@ -229,9 +229,18 @@ function viewAssignSummary() {
 }
 
 // 낮 회의 + 타이머
+// 1일차 낮 회의에서만: 역할 배정이 끝났다는 카드
+function assignDoneCard() {
+  if (g.day !== 1) return '';
+  const n = (team) => g.players.filter((p) => E.teamOf(g, p) === team).length;
+  return `<section class="card done-card"><b>✅ 역할 배정이 완료되었습니다</b>
+    <span>${esc(TEAMS.mafia)} 팀 ${n('mafia')}명 · ${esc(TEAMS.citizen)} 팀 ${n('citizen')}명</span></section>`;
+}
+
 function viewDayTalk() {
   const ms = remain();
   return `
+  ${assignDoneCard()}
   <section class="card announce day">${lines(g.announce)}</section>
   <section class="card timer-card">
     <div id="timer" class="timer ${ms === 0 ? 'done' : ''}">${formatTime(ms)}</div>
@@ -239,7 +248,7 @@ function viewDayTalk() {
       <button type="button" class="btn big ${g.timer.running ? '' : 'primary'}" data-act="timer-toggle">${g.timer.running ? '일시정지' : (ms === g.settings.discussionSec * 1000 ? '회의 시작' : '계속')}</button>
       <button type="button" class="btn" data-act="timer-add" data-ms="-30000">−30초</button>
       <button type="button" class="btn" data-act="timer-add" data-ms="30000">+30초</button>
-      <button type="button" class="btn" data-act="timer-reset">처음부터</button>
+      <button type="button" class="btn" data-act="timer-reset">타이머 초기화</button>
     </div>
   </section>
   <div class="actions">
@@ -281,6 +290,25 @@ function viewResult() {
     <ul>${g.report.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
   </details>` : ''}
   <div class="actions">${next}</div>`;
+}
+
+// 밤 역할 카드에 붙는 능력 한 줄 설명 — 설정의 능력 종류 · 세부 규칙에서 만든다
+function abilityDesc(r) {
+  const o = r.opts ?? {};
+  const uses = (n) => (Number(n) > 0 ? `${n}회` : '횟수 무제한');
+  const extra = {
+    heal: [o.selfTarget ? '자기 자신도 가능' : '자기 자신은 불가', o.noRepeat && '같은 사람 이틀 연속 불가'],
+    seduce: [o.selfTarget && '마피아 팀도 고를 수 있음'],
+    snipe: [uses(o.uses), o.healable && '의사가 살린 마피아는 안 죽음'],
+    reveal: [o.scope === 'team' ? '마피아/시민만 공개' : '역할까지 공개', uses(o.uses)],
+    lovers: ['첫날 밤 얼굴 확인만'],
+  }[r.ability] ?? [];
+  // 연인은 켜 둔 사망 원인만 적는다 (기본: 마피아 공격일 때만 같이 죽음)
+  const causes = [o.onMafia && '마피아 공격', o.onExecution && '낮 처형'].filter(Boolean);
+  const label = r.ability === 'lovers'
+    ? (causes.length ? `연인 — 한 명이 ${causes.join(' · ')}으로 죽으면 같이 죽음` : '연인 — 같이 죽지 않음')
+    : ABILITIES[r.ability]?.label;
+  return [label, ...extra].filter(Boolean).join(' · ');
 }
 
 // 밤 진행
@@ -337,6 +365,7 @@ function viewNight() {
     ${head}
     <div class="role-line">${teamBadge(r.team)} <b>${esc(r.name)}</b>
       <span class="muted">— ${all.map((p) => `${esc(p.name)}${p.alive ? '' : '(사망)'}`).join(', ')}</span></div>
+    <p class="role-desc">${esc(abilityDesc(r))}</p>
     ${lines([r.nightScript || `${r.name}은(는) 고개를 들어 주세요.`])}
     <p class="muted small">끝나면: "${esc(g.settings.scripts.nightRoleEnd)}"</p>
   </section>

@@ -127,3 +127,10 @@ body[data-theme="night"] { background: #0b0c14; }
 .tag.out { background: transparent; border-style: dashed; color: var(--muted); text-decoration: line-through; }
 .tag.out small { text-decoration: none; font-size: 11px; color: var(--warn); }
 .empty { padding: 16px; border-radius: 8px; background: var(--warn-bg); color: var(--warn); font-weight: 600; margin: 0; }
+
+/* 역할 배정 완료 카드 (1일차 낮 회의) */
+.done-card { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px;
+             border-color: var(--citizen); background: var(--citizen-bg); }
+.done-card b { font-size: 17px; color: var(--citizen); }
+.done-card span { color: var(--muted); }
+.role-desc { margin: -2px 0 10px; font-size: 14px; color: var(--muted); }

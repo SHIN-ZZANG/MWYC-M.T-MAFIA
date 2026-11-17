@@ -43,7 +43,6 @@ export const ABILITY_OPTS = {
   lovers: [
     { key: 'onMafia', type: 'bool', label: '마피아 공격으로 죽으면 같이 죽음', def: true },
     { key: 'onExecution', type: 'bool', label: '낮 투표로 처형되면 같이 죽음', def: false },
-    { key: 'onSnipe', type: 'bool', label: '저격(오발 포함)으로 죽으면 같이 죽음', def: false },
     { key: 'meetFirstNight', type: 'bool', label: '첫날 밤에 호출해 서로 확인', def: true },
   ],
 };

@@ -113,8 +113,7 @@ function chainLovers(g, deaths) {
     for (const r of S.roles.filter((x) => x.ability === 'lovers')) {
       const trigger = deaths.some((d) => d.p.roleId === r.id && d.cause !== 'lover' && (
         (d.cause === 'mafia' && r.opts.onMafia)
-        || (d.cause === 'execution' && r.opts.onExecution)
-        || ((d.cause === 'snipe' || d.cause === 'snipeFail') && r.opts.onSnipe)));
+        || (d.cause === 'execution' && r.opts.onExecution)));
       if (!trigger) continue;
       for (const m of aliveMembers(g, r.id)) {
         if (!deaths.some((d) => d.p === m)) { deaths.push({ p: m, cause: 'lover' }); added = true; }
