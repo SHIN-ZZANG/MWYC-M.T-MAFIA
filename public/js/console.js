@@ -292,22 +292,18 @@ function viewResult() {
   <div class="actions">${next}</div>`;
 }
 
-// 밤 역할 카드에 붙는 능력 한 줄 설명 — 설정의 능력 종류 · 세부 규칙에서 만든다
+// 밤 역할 카드에 붙는 능력 한 줄 설명 — 규칙은 고정, 횟수만 설정에서 온다
 function abilityDesc(r) {
-  const o = r.opts ?? {};
-  const uses = (n) => (Number(n) > 0 ? `${n}회` : '횟수 무제한');
+  const n = Number(r.opts?.uses);
+  const uses = n > 0 ? `${n}회` : '횟수 무제한';
   const extra = {
-    heal: [o.selfTarget ? '자기 자신도 가능' : '자기 자신은 불가', o.noRepeat && '같은 사람 이틀 연속 불가'],
-    seduce: [o.selfTarget && '마피아 팀도 고를 수 있음'],
-    snipe: [uses(o.uses), o.healable && '의사가 살린 마피아는 안 죽음'],
-    reveal: [o.scope === 'team' ? '마피아/시민만 공개' : '역할까지 공개', uses(o.uses)],
+    heal: ['의사 자신도 가능'],
+    seduce: ['마피아 팀은 고를 수 없음'],
+    snipe: [uses, '의사가 살린 마피아는 안 죽음'],
+    reveal: ['역할까지 공개', '그날 밤 죽은 사람도 공개', uses],
     lovers: ['첫날 밤 얼굴 확인만'],
   }[r.ability] ?? [];
-  // 연인은 켜 둔 사망 원인만 적는다 (기본: 마피아 공격일 때만 같이 죽음)
-  const causes = [o.onMafia && '마피아 공격', o.onExecution && '낮 처형'].filter(Boolean);
-  const label = r.ability === 'lovers'
-    ? (causes.length ? `연인 — 한 명이 ${causes.join(' · ')}으로 죽으면 같이 죽음` : '연인 — 같이 죽지 않음')
-    : ABILITIES[r.ability]?.label;
+  const label = r.ability === 'lovers' ? '연인 — 한 명이 마피아 공격 · 낮 처형으로 죽으면 같이 죽음' : ABILITIES[r.ability]?.label;
   return [label, ...extra].filter(Boolean).join(' · ');
 }
 

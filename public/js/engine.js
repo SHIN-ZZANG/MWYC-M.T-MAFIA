@@ -105,18 +105,20 @@ function kill(g, p, cause) {
 }
 
 // 연인 동반 사망. deaths: [{p, cause}] 에 이어 붙인다.
-function chainLovers(g, deaths) {
+// 연인 규칙(고정): 마피아 공격 · 낮 처형으로 죽으면 남은 연인도 따라 죽는다.
+// 밤에 따라 죽을 연인을 의사가 살렸으면 살고, saved 에 남긴다(아침에 연인임을 밝힌다)
+function chainLovers(g, deaths, healed = new Set(), saved = []) {
   const S = g.settings;
   let added = true;
   while (added) {
     added = false;
     for (const r of S.roles.filter((x) => x.ability === 'lovers')) {
-      const trigger = deaths.some((d) => d.p.roleId === r.id && d.cause !== 'lover' && (
-        (d.cause === 'mafia' && r.opts.onMafia)
-        || (d.cause === 'execution' && r.opts.onExecution)));
-      if (!trigger) continue;
+      const first = deaths.find((d) => d.p.roleId === r.id && (d.cause === 'mafia' || d.cause === 'execution'));
+      if (!first) continue;
       for (const m of aliveMembers(g, r.id)) {
-        if (!deaths.some((d) => d.p === m)) { deaths.push({ p: m, cause: 'lover' }); added = true; }
+        if (deaths.some((d) => d.p === m) || saved.some((s) => s.p === m)) continue;
+        if (healed.has(m.id)) { saved.push({ p: m, lover: first.p }); continue; }
+        deaths.push({ p: m, cause: 'lover' }); added = true;
       }
     }
   }
@@ -169,7 +171,7 @@ export function execute(g, playerId) {
 function roleWakes(g, r) {
   const night = ABILITIES[r.ability]?.night;
   if (night === true) return true;
-  if (night === 'first') return g.day === 1 && r.opts.meetFirstNight;
+  if (night === 'first') return g.day === 1;
   return false;
 }
 
@@ -214,11 +216,10 @@ export function targetOptions(g, roleId) {
   const r = roleById(g, roleId);
   const list = alive(g);
   if (r.ability === 'heal') {
-    const last = g.roleState[roleId]?.lastTarget;
-    return list.filter((p) => (r.opts.selfTarget || p.roleId !== roleId) && !(r.opts.noRepeat && p.id === last));
+    return list; // 의사 자신 · 같은 사람 연속 치료 모두 가능
   }
   if (r.ability === 'seduce') {
-    return list.filter((p) => r.opts.selfTarget || teamOf(g, p) !== 'mafia');
+    return list.filter((p) => teamOf(g, p) !== 'mafia'); // 마피아 팀은 유혹할 수 없다
   }
   if (r.ability === 'snipe' || r.ability === 'investigate' || r.ability === 'reveal') {
     return list.filter((p) => p.roleId !== roleId);
@@ -258,7 +259,7 @@ export function resolveNight(g) {
     const pr = roleOf(g, p);
     const hasShield = pr.ability === 'shield' && p.shield > 0;
     const isHealed = healed.has(t);
-    if (isHealed && (pr.opts.healFirst !== false || !hasShield)) {
+    if (isHealed) { // 의사가 살렸으면 방탄은 쓰지 않는다
       lines.push(fill(S.scripts.nightSaved, { name: p.name }));
       report.push(`${r.name} 공격 → ${p.name}: 의사가 살림`);
     } else if (hasShield) {
@@ -280,9 +281,9 @@ export function resolveNight(g) {
     if (st.usesLeft !== null) st.usesLeft = Math.max(0, st.usesLeft - 1);
     const p = playerById(g, t);
     if (teamOf(g, p) === 'mafia') {
-      if (r.opts.healable && healed.has(t)) {
-        lines.push(fill(S.scripts.snipeSaved, { name: p.name }));
-        report.push(`${r.name} 저격 → ${p.name}(마피아): 의사가 살림`);
+      if (healed.has(t)) {
+        // 살아남았으니 아무것도 발표하지 않는다 — 발표하면 마피아인 것이 드러난다
+        report.push(`${r.name} 저격 → ${p.name}(마피아): 의사가 살림 (발표 안 함)`);
       } else {
         if (!deaths.some((d) => d.p === p)) deaths.push({ p, cause: 'snipe' });
         report.push(`${r.name} 저격 → ${p.name}(마피아): 사살`);
@@ -294,7 +295,8 @@ export function resolveNight(g) {
     }
   }
 
-  chainLovers(g, deaths);
+  const loverSaved = [];
+  chainLovers(g, deaths, healed, loverSaved);
 
   // 사망 처리와 발표 문장
   const causeTpl = { mafia: 'nightKill', snipe: 'snipeKill', snipeFail: 'snipeFail', lover: 'loverDeath' };
@@ -304,6 +306,10 @@ export function resolveNight(g) {
     lines.push(...revealSuffix(g, d.p, scopeN));
     addLog(g, `밤 사망: ${d.p.name} (${roleOf(g, d.p).name}, ${CAUSE_LABEL[d.cause]})`, 'death');
   }
+  for (const s of loverSaved) {
+    lines.push(fill(S.scripts.loverSaved, { name: s.p.name, lover: s.lover.name }));
+    report.push(`연인 ${s.p.name}: 따라 죽으려 했으나 의사가 살림`);
+  }
 
   // 기자 공개 (기자는 밤이 시작될 때 살아 있었어야 한다)
   for (const r of S.roles.filter((x) => x.ability === 'reveal')) {
@@ -311,7 +317,7 @@ export function resolveNight(g) {
     if (!t) continue;
     const reporterAlive = aliveMembers(g, r.id).length > 0;
     const diedTonight = deaths.some((d) => d.p.roleId === r.id);
-    if (!reporterAlive && !(diedTonight && r.opts.announceIfDead)) {
+    if (!reporterAlive && !diedTonight) { // 그날 밤 죽은 기자는 공개된다
       report.push(`${r.name}: 그날 밤 사망해 공개 안 함`);
       continue;
     }
@@ -319,7 +325,7 @@ export function resolveNight(g) {
     const st = g.roleState[r.id];
     if (st.usesLeft !== null) st.usesLeft = Math.max(0, st.usesLeft - 1);
     const p = playerById(g, t);
-    lines.push(fill(S.scripts.reporter, { name: p.name, reveal: revealText(g, p, r.opts.scope) }));
+    lines.push(fill(S.scripts.reporter, { name: p.name, reveal: revealText(g, p, 'role') }));
     report.push(`${r.name} 공개: ${p.name}`);
   }
 

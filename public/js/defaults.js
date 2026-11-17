@@ -12,39 +12,17 @@ export const ABILITIES = {
   investigate: { label: '조사 — 마피아인지 확인', night: true },
   snipe:       { label: '저격 — 마피아면 사살, 시민이면 본인 사망', night: true },
   reveal:      { label: '공개 — 아침에 지목한 사람의 정체 발표', night: true },
-  shield:      { label: '방탄 — 마피아 공격을 횟수만큼 막음', night: false },
-  lovers:      { label: '연인 — 한 명이 죽으면 같이 죽음', night: 'first' },
+  shield:      { label: '방탄 — 마피아 공격을 횟수만큼 막음 (의사가 살리면 안 씀)', night: false },
+  lovers:      { label: '연인 — 마피아 공격 · 낮 처형으로 죽으면 같이 죽음', night: 'first' },
   soloWin:     { label: '관종 — 낮 투표로 처형되면 단독 우승', night: false },
 };
 
 // 능력별 세부 규칙 기본값과 설정 화면 표시용 정의
+// 능력별 숫자 설정. 나머지 규칙은 고정이다(engine.js · README 의 "역할 규칙" 참고)
 export const ABILITY_OPTS = {
-  heal: [
-    { key: 'selfTarget', type: 'bool', label: '자기 자신(의사)도 살릴 수 있음', def: true },
-    { key: 'noRepeat', type: 'bool', label: '같은 사람을 이틀 연속 살릴 수 없음', def: false },
-  ],
-  seduce: [
-    { key: 'selfTarget', type: 'bool', label: '마피아 팀도 유혹 대상으로 고를 수 있음', def: false },
-  ],
-  snipe: [
-    { key: 'uses', type: 'num', label: '사용 횟수 (0 = 무제한)', def: 0 },
-    { key: 'healable', type: 'bool', label: '의사가 살린 마피아는 저격으로 죽지 않음', def: false },
-  ],
-  reveal: [
-    { key: 'uses', type: 'num', label: '사용 횟수 (0 = 무제한)', def: 1 },
-    { key: 'scope', type: 'select', label: '공개 범위', def: 'role',
-      options: { role: '역할까지', team: '마피아/시민만' } },
-    { key: 'announceIfDead', type: 'bool', label: '기자가 그날 밤 죽어도 아침에 공개', def: true },
-  ],
-  shield: [
-    { key: 'uses', type: 'num', label: '방어 횟수', def: 1 },
-    { key: 'healFirst', type: 'bool', label: '의사가 살린 경우 방탄을 쓰지 않음', def: true },
-  ],
-  lovers: [
-    { key: 'onMafia', type: 'bool', label: '마피아 공격으로 죽으면 같이 죽음', def: true },
-    { key: 'onExecution', type: 'bool', label: '낮 투표로 처형되면 같이 죽음', def: false },
-    { key: 'meetFirstNight', type: 'bool', label: '첫날 밤에 호출해 서로 확인', def: true },
-  ],
+  snipe: [{ key: 'uses', type: 'num', label: '사용 횟수 (0 = 무제한)', def: 0 }],
+  reveal: [{ key: 'uses', type: 'num', label: '사용 횟수 (0 = 무제한)', def: 1 }],
+  shield: [{ key: 'uses', type: 'num', label: '방어 횟수', def: 1 }],
 };
 
 export function defaultOpts(ability) {
@@ -62,8 +40,8 @@ export const DEFAULT_SETTINGS = {
   version: 1,
   discussionSec: 180,          // 낮 회의 타이머
   beep: true,                  // 타이머 종료 효과음
-  revealExecution: 'role',     // 낮 처형 시 공개: role | team | none
-  revealNightDeath: 'role',    // 밤 사망 시 공개: role | team | none
+  revealExecution: 'team',     // 낮 처형 시 공개: role | team | none
+  revealNightDeath: 'team',    // 밤 사망 시 공개: role | team | none
   callDeadRoles: true,         // 죽은 역할도 밤에 호출(누가 죽었는지 숨김)
   mafiaWinRule: 'gte',         // gte: 마피아 ≥ 시민이면 마피아 승 / gt: 마피아 > 시민
   roster: [],                  // 참가자 명단(이름). 판마다 참여 · 제외는 콘솔에서 고른다
@@ -114,8 +92,8 @@ export const DEFAULT_SETTINGS = {
     veteranBlock: '밤사이 {name} 님이 마피아에게 공격당했습니다.\n만석씨~?\n"이거 방탄유리야 ㄱㅅㄲ야!"\n방탄유리가 공격을 막아냈습니다.',
     snipeKill: '밤사이 총성이 울렸습니다. {name} 님이 저격당해 사망했습니다.',
     snipeFail: '밤사이 총성이 울렸습니다. {name} 님이 사망했습니다.',
-    snipeSaved: '밤사이 총성이 울렸지만, {name} 님은 의사 덕분에 살아남았습니다.',
     loverDeath: '{name} 님은 연인을 잃은 슬픔에 함께 세상을 떠났습니다.',
+    loverSaved: '{lover} 님의 연인 {name} 님은 뒤따라 세상을 떠나려 했으나, 의사가 {name} 님을 살렸습니다.',
     reporter: '[속보] 익명의 기자가 지목한 사람은 {name} 님, 정체는 [{reveal}] 입니다.',
     nothing: '밤사이 아무 일도 일어나지 않았습니다.',
     winMafia: '마피아 팀이 승리했습니다!',
@@ -138,8 +116,8 @@ export const SCRIPT_LABELS = {
   veteranBlock: '퇴역군인 방어',
   snipeKill: '저격 성공',
   snipeFail: '저격 실패(스나이퍼 사망)',
-  snipeSaved: '저격당했지만 의사가 살림',
   loverDeath: '연인 동반 사망',
+  loverSaved: '연인이 따라 죽으려 했으나 의사가 살림 ({lover} = 먼저 죽은 연인)',
   reporter: '기자 공개',
   nothing: '아무 일 없음',
   winMafia: '마피아 승리',
