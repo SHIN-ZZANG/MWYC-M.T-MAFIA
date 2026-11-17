@@ -2,7 +2,7 @@
 // 화면 구성: [참가자 명단] [진행 규칙] [역할] [멘트] 탭 / 역할 탭 안에서는 팀 선택 → 역할 탭 → 역할 하나의 설정
 import { ABILITIES, ABILITY_OPTS, TEAMS, SCRIPT_LABELS, REVEAL_LABELS, DEFAULT_SETTINGS, defaultOpts } from '/js/defaults.js';
 import { initStore, adoptServer, loadSettings, saveSettings, normalizeSettings, loadGame, splitNames, sortRolesByTeam } from '/js/store.js';
-import { esc } from '/js/display-link.js';
+import { esc } from '/js/util.js';
 
 const $form = document.getElementById('form');
 const $save = document.getElementById('btn-save');

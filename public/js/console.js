@@ -3,7 +3,7 @@ import * as E from './engine.js';
 import { TEAMS, ABILITIES, REVEAL_LABELS } from './defaults.js';
 import { initStore, adoptServer, loadSettings, saveSettings, loadGame, loadHistory, saveGameState, splitNames, uniqueNames } from './store.js';
 import { beep, unlockAudio } from './sound.js';
-import { createLink, formatTime, esc } from './display-link.js';
+import { formatTime, esc } from './util.js';
 
 const $stage = document.getElementById('stage');
 const $side = document.getElementById('side');
@@ -63,37 +63,6 @@ function touch(mutate) {
   render();
 }
 
-// ── 참가자 화면 연결 ──────────────────────────────────────────
-const link = createLink((msg) => { if (msg?.kind === 'hello') pushDisplay(); });
-
-function displayPayload() {
-  if (!g) return { theme: 'idle', title: '마피아 게임', lines: ['곧 게임이 시작됩니다.'] };
-  const day = `${g.day}일차`;
-  switch (g.phase) {
-    case 'assign': return { theme: 'idle', title: '마피아 게임', lines: ['역할을 배정하고 있습니다.'] };
-    case 'day-talk': return { theme: 'day', title: `${day} 낮 — 회의`, lines: g.announce, timer: g.timer };
-    case 'day-vote': return { theme: 'day', title: `${day} 낮 — 투표`, lines: [g.settings.scripts.voteStart] };
-    case 'day-result': return { theme: g.winner ? 'over' : 'day', title: `${day} 낮 — 투표 결과`, lines: g.announce };
-    case 'night': {
-      const step = g.nightPlan[g.nightStep];
-      const lines = step?.kind === 'role'
-        ? [E.roleById(g, step.roleId).nightScript || g.settings.scripts.nightStart]
-        : [g.settings.scripts.nightStart];
-      return { theme: 'night', title: `${day} 밤`, lines };
-    }
-    case 'morning': return { theme: g.winner ? 'over' : 'day', title: `${g.day + 1}일차 아침`, lines: g.announce };
-    case 'over': return {
-      theme: 'over', title: '게임 종료', lines: [g.winner?.line ?? '게임이 끝났습니다.'],
-      reveal: g.players.map((p) => ({ name: p.name, role: E.roleOf(g, p)?.name, team: E.teamOf(g, p), alive: p.alive })),
-    };
-    default: return { theme: 'idle', title: '마피아 게임', lines: [] };
-  }
-}
-
-function pushDisplay() {
-  link.post({ kind: 'state', ...displayPayload(), now: Date.now() });
-}
-
 // ── 타이머 ────────────────────────────────────────────────────
 const remain = () => (g.timer.running ? Math.max(0, g.timer.endsAt - Date.now()) : g.timer.remainMs);
 
@@ -142,6 +111,7 @@ function render() {
   $phase.className = 'phase-badge ' + (g ? themeOf() : 'idle');
   document.body.dataset.theme = g ? themeOf() : 'idle';
   document.getElementById('btn-undo').disabled = !g || history.length === 0;
+  document.getElementById('btn-restart').disabled = !g || g.phase === 'assign';
   document.getElementById('btn-hide').textContent = hideRoles ? '역할 보이기' : '역할 가리기';
 
   if (!g) $stage.innerHTML = viewSetup();
@@ -153,7 +123,6 @@ function render() {
     $stage.innerHTML = (views[g.phase] ?? (() => '<p>알 수 없는 단계입니다.</p>'))();
   }
   $side.innerHTML = viewSide();
-  pushDisplay();
 }
 
 function themeOf() {
@@ -344,6 +313,7 @@ function viewNight() {
   if (dead) notes.push(`<div class="note warn">이 역할은 모두 죽었습니다. 다른 역할처럼 멘트를 읽고 잠시 기다린 뒤 넘어가세요.</div>`);
   if (exhausted) notes.push(`<div class="note warn">능력을 이미 다 썼습니다. 호출만 하고 넘어가세요.</div>`);
   if (blocked && !dead) notes.push(`<div class="note mafia">마담에게 유혹당했습니다. 평소처럼 진행하되 이번 밤 능력은 무효입니다.</div>`);
+  if (r.ability === 'investigate' && !noInput) notes.push(`<div class="note">경찰이 지목한 사람을 고르면 아래에 결과가 뜹니다. 경찰에게만 엄지로 조용히 알려 주세요 — 👍 마피아 / 👎 아님. 결과는 아침 발표에 나오지 않습니다.</div>`);
   if (left !== null && left !== undefined && !exhausted) notes.push(`<div class="note">남은 사용 횟수: ${left}회</div>`);
 
   let body = '';
@@ -375,7 +345,7 @@ function viewNight() {
 
 function investigateResult(targetId, blocked) {
   const p = E.playerById(g, targetId);
-  if (blocked) return `<div class="verdict blocked">유혹당함 — 결과를 알려 주지 마세요</div>`;
+  if (blocked) return `<div class="verdict blocked">유혹당함 — 결과를 알려 주지 마세요<br><small>유혹당한 걸 들키지 않게, 평소처럼 엄지를 보여 주되 아무 쪽이나 보여 주세요</small></div>`;
   const isMafia = E.teamOf(g, p) === 'mafia';
   return `<div class="verdict ${isMafia ? 'mafia' : 'citizen'}">${esc(p.name)} 님은 ${isMafia ? '마피아입니다 👍' : '마피아가 아닙니다 👎'}</div>`;
 }
@@ -423,8 +393,8 @@ function viewSide() {
     return `<section class="card"><h3>사용 방법</h3><ol class="howto">
       <li>[설정]에서 참가자 명단 · 역할 · 멘트 · 타이머를 정합니다.</li>
       <li>이번 판에 쉬는 사람을 제외하고 역할을 배정합니다.</li>
-      <li>[참가자 화면 열기]로 띄운 창을 TV · 빔 프로젝터 쪽으로 옮깁니다. 이 창에는 역할이 나오지 않습니다.</li>
-      <li>잘못 눌렀으면 [되돌리기]를 누르세요.</li></ol></section>`;
+      <li>사회자만 보는 화면입니다. 참가자에게 화면이 보이지 않게 하세요. 잠깐 보여 줘야 하면 [역할 가리기]를 누르세요.</li>
+      <li>잘못 눌렀으면 [되돌리기], 같은 배정으로 다시 하려면 [처음부터]를 누르세요.</li></ol></section>`;
   }
   const sid = g.phase === 'night' ? E.seducedId(g) : null;
   const al = E.alive(g);
@@ -456,9 +426,6 @@ document.addEventListener('click', async (e) => {
   const id = el.dataset.id || null;
 
   switch (el.dataset.act) {
-    case 'open-display':
-      window.open('/display/', 'mafia-display', 'width=1280,height=720');
-      break;
     case 'toggle-roles':
       hideRoles = !hideRoles;
       writePref('mafia.hideRoles', hideRoles ? '1' : '0');
@@ -466,6 +433,15 @@ document.addEventListener('click', async (e) => {
       break;
     case 'undo':
       if (history.length) { g = JSON.parse(history.pop()); persist(); render(); }
+      break;
+    case 'restart':
+      if (!g || g.phase === 'assign') break;
+      if (await dlg.confirm('같은 멤버, 같은 역할로 1일차 낮부터 다시 시작할까요?\n생존 · 능력 사용 횟수 · 진행 기록이 처음으로 돌아갑니다.\n잘못 눌렀으면 [되돌리기]로 돌아올 수 있습니다.', '처음부터', { danger: true })) {
+        history.push(JSON.stringify(g));
+        if (history.length > 150) history.shift();
+        g = E.restartGame(g);
+        persist(); render();
+      }
       break;
     case 'new-game':
       if (!g) break;

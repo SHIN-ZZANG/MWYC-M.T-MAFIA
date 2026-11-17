@@ -76,3 +76,7 @@ input[type="checkbox"], input[type="radio"] { width: auto; flex: none; }
 .login-input { width: 100%; padding: 10px 12px; border: 1px solid #cfd4da; border-radius: 6px;
                background: #fff; color: #222; font-size: 15px; margin-bottom: 6px; }
 .login-err { min-height: 20px; margin: 0 0 10px; font-size: 13px; color: #d93838; }
+
+/* 헤더 로고 — mwyc-main · mwyc-busking 과 같은 주황 MW 심볼(public/icons/) */
+.brand-mark { width: 32px; height: 32px; border-radius: 22%; flex: none; }
+.brand h1 { display: inline-flex; align-items: center; gap: 10px; }

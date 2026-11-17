@@ -374,3 +374,12 @@ export function nextDay(g) {
   g.day += 1;
   startDay(g);
 }
+
+// 같은 참가자 · 같은 역할 배정으로 1일차 낮부터 다시. 설정은 이 게임이 시작할 때 것을 그대로 쓴다
+export function restartGame(g) {
+  const fresh = createGame(g.settings, g.players.map((p) => p.name));
+  fresh.players.forEach((p, i) => { p.roleId = g.players[i].roleId; });
+  addLog(fresh, '같은 배정으로 처음부터 다시 시작');
+  finishAssign(fresh);
+  return fresh;
+}
