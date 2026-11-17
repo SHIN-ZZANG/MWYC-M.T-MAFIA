@@ -39,6 +39,8 @@
 
 /* 참가자 명단 */
 .roster-add { display: flex; gap: 8px; max-width: 420px; }
+.roster-add input { flex: 1; min-width: 0; }
+.roster-add .btn { flex: none; white-space: nowrap; }
 .roster-msg { min-height: 20px; margin: 6px 0; font-size: 13px; color: var(--citizen); }
 .roster-msg.bad { color: var(--warn); }
 .roster-count { margin: 0 0 8px; }
