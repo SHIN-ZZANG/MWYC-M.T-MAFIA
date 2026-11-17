@@ -32,7 +32,7 @@
   const text = document.createElement('div');
   text.className = 'pwa-text';
   const title = document.createElement('strong');
-  title.textContent = '미완예찬M.T(마피아게임) 앱으로 쓰기';
+  title.textContent = '미완예찬 M.T(마피아게임) 앱으로 쓰기';
   const desc = document.createElement('span');
   text.append(title, desc);
 
