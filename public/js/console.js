@@ -111,7 +111,7 @@ function render() {
   $phase.className = 'phase-badge ' + (g ? themeOf() : 'idle');
   document.body.dataset.theme = g ? themeOf() : 'idle';
   document.getElementById('btn-undo').disabled = !g || history.length === 0;
-  document.getElementById('btn-restart').disabled = !g || g.phase === 'assign';
+  document.getElementById('btn-restart').disabled = !g;
   document.getElementById('btn-hide').textContent = hideRoles ? '역할 보이기' : '역할 가리기';
 
   if (!g) $stage.innerHTML = viewSetup();
@@ -434,15 +434,32 @@ document.addEventListener('click', async (e) => {
     case 'undo':
       if (history.length) { g = JSON.parse(history.pop()); persist(); render(); }
       break;
-    case 'restart':
-      if (!g || g.phase === 'assign') break;
-      if (await dlg.confirm('같은 멤버, 같은 역할로 1일차 낮부터 다시 시작할까요?\n생존 · 능력 사용 횟수 · 진행 기록이 처음으로 돌아갑니다.\n잘못 눌렀으면 [되돌리기]로 돌아올 수 있습니다.', '처음부터', { danger: true })) {
+    case 'restart': {
+      if (!g) break;
+      const inAssign = g.phase === 'assign';
+      const opts = [{ label: '역할 다시 배정', value: 'reassign', danger: true }];
+      if (!inAssign) opts.push({ label: '같은 역할로 1일차 낮부터', value: 'day1', danger: true });
+      const pick = await dlg.choice(
+        (inAssign ? '' : '[같은 역할로 1일차 낮부터] 배정은 그대로 두고 생존 · 능력 횟수 · 진행 기록만 처음으로 돌립니다.\n')
+        + '[역할 다시 배정] 같은 참가자로 역할 배정부터 새로 합니다. 지금 저장된 설정을 씁니다.\n\n잘못 골랐으면 [되돌리기]로 돌아올 수 있습니다.',
+        '처음부터', opts);
+      if (pick === 'day1') {
         history.push(JSON.stringify(g));
         if (history.length > 150) history.shift();
         g = E.restartGame(g);
         persist(); render();
+      } else if (pick === 'reassign') {
+        const S = loadSettings();
+        const names = g.players.map((p) => p.name);
+        const errs = E.validateSetup(S, names);
+        if (errs.length) { await dlg.alert(errs.join('\n'), '역할을 다시 배정할 수 없습니다'); break; }
+        history.push(JSON.stringify(g));
+        if (history.length > 150) history.shift();
+        g = E.createGame(S, names);
+        persist(); render();
       }
       break;
+    }
     case 'new-game':
       if (!g) break;
       if (await dlg.confirm('진행 중인 게임을 끝내고 처음 화면으로 갈까요?\n지금 게임 기록은 사라집니다.', '새 게임', { danger: true })) {

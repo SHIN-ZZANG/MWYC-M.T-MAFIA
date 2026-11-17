@@ -336,7 +336,6 @@ document.addEventListener('click', async (e) => {
         await save('기본값으로 되돌렸습니다.');
       }
       break;
-    case 'export': exportJson(); break;
     case 'back':
       if (dirty) {
         e.preventDefault();
@@ -347,7 +346,7 @@ document.addEventListener('click', async (e) => {
   }
 });
 
-// ── 저장 · 내보내기 · 불러오기 ─────────────────────────────────
+// ── 저장 ─────────────────────────────────────────
 function validate() {
   const errs = [];
   if (!S.roles.length) errs.push('역할이 하나도 없습니다.');
@@ -391,33 +390,6 @@ async function save(doneMsg = '저장했습니다. 다음 새 게임부터 적�
   render();
   await dlg.alert(doneMsg);
 }
-
-function exportJson() {
-  const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `mafia-settings-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-document.getElementById('import').addEventListener('change', async (e) => {
-  const file = e.target.files?.[0];
-  e.target.value = '';
-  if (!file) return;
-  try {
-    const data = JSON.parse(await file.text());
-    if (!Array.isArray(data.roles)) throw new Error('roles 항목이 없습니다.');
-    S = normalizeSettings(data);
-    view.roleId = null;
-    setDirty(true);
-    render();
-    await dlg.alert('불러왔습니다. 확인 후 [저장]을 누르세요.');
-  } catch (err) {
-    console.error('[settings] 불러오기 실패', err);
-    await dlg.alert(`설정 파일을 읽지 못했습니다.\n${err.message}`, '불러오기 실패');
-  }
-});
 
 window.addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
 

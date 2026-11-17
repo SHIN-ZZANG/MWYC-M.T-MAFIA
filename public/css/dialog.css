@@ -14,8 +14,8 @@
 }
 .dlg-title { font-size: 16px; font-weight: 700; margin: 0 0 10px; }
 .dlg-msg   { font-size: 14px; line-height: 1.6; color: #333; white-space: pre-line; margin: 0 0 18px; }
-.dlg-btns  { display: flex; justify-content: flex-end; gap: 8px; }
-.dlg-btn   { min-width: 76px; padding: 8px 14px; border-radius: 6px; border: 1px solid #cfd4da;
+.dlg-btns  { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.dlg-btn   { min-width: 76px; white-space: nowrap; padding: 8px 14px; border-radius: 6px; border: 1px solid #cfd4da;
              background: #f5f6f8; color: #222; font-size: 14px; cursor: pointer; }
 .dlg-btn.primary { background: #2f6fed; border-color: #2f6fed; color: #fff; }
 .dlg-btn.danger  { background: #d93838; border-color: #d93838; color: #fff; }

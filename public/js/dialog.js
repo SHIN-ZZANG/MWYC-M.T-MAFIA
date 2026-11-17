@@ -42,7 +42,7 @@
 
       function onKey(e) {
         if (e.key === 'Escape') { e.preventDefault(); close(buttons.find((b) => b.cancel)?.value ?? false); }
-        if (e.key === 'Enter')  { e.preventDefault(); close(buttons.find((b) => b.primary)?.value ?? true); }
+        if (e.key === 'Enter')  { e.preventDefault(); close(buttons.find((b) => b.primary)?.value ?? buttons.find((b) => b.cancel)?.value ?? true); }
       }
       function close(value) {
         document.removeEventListener('keydown', onKey, true);
@@ -63,6 +63,15 @@
   }
 
   window.dlg = {
+    // 여러 갈래 중 하나 고르기. options: [{ label, value, primary?, danger? }] — 취소하면 null
+    choice(message, title = '선택', options = []) {
+      return enqueue({ title, message,
+        buttons: [
+          { label: '취소', value: null, cancel: true },
+          ...options.map((o) => ({ label: o.label, value: o.value, primary: !!o.primary,
+            style: o.danger ? 'danger' : o.primary ? 'primary' : '' })),
+        ] });
+    },
     alert(message, title = '알림') {
       return enqueue({ title, message,
         buttons: [{ label: '확인', value: true, primary: true, style: 'primary' }] });
