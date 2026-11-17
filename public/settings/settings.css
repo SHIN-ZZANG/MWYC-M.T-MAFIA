@@ -1,0 +1,115 @@
+/* 설정 화면 */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 20px; background: rgba(18, 19, 24, 0.95); border-bottom: 1px solid var(--line);
+}
+.topbar h1 { font-size: 18px; }
+.top-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn.dirty { box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.4); }
+
+.wrap { max-width: 1000px; margin: 0 auto; padding: 20px 16px 80px; display: flex; flex-direction: column; gap: 16px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
+.card > h2 { font-size: 18px; margin-bottom: 4px; }
+.card > .desc { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+.notice { background: var(--warn-bg); color: var(--warn); border-color: transparent; font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px 16px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field > span { font-size: 13px; color: var(--muted); font-weight: 600; }
+.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+
+.roles { display: flex; flex-direction: column; gap: 12px; }
+.role { border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: var(--panel-2); }
+.role.mafia { border-left: 4px solid var(--mafia); }
+.role.citizen { border-left: 4px solid var(--citizen); }
+.role-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.role-top .order { font-weight: 800; color: var(--muted); width: 24px; }
+.role-top .spacer { flex: 1; }
+.role .grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.role textarea { min-height: 60px; resize: vertical; }
+.opts { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: var(--bg); display: flex; flex-direction: column; gap: 8px; }
+.opts .field { flex-direction: row; align-items: center; gap: 10px; }
+.opts .field input[type="number"], .opts .field select { width: 140px; }
+.mt { margin-top: 10px; }
+
+.scripts { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.scripts textarea { min-height: 44px; resize: vertical; }
+.hint code { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; }
+
+/* 참가자 명단 */
+.roster-add { display: flex; gap: 8px; max-width: 420px; }
+.roster-msg { min-height: 20px; margin: 6px 0; font-size: 13px; color: var(--citizen); }
+.roster-msg.bad { color: var(--warn); }
+.roster-count { margin: 0 0 8px; }
+.roster-count .bad { color: var(--mafia); font-weight: 600; }
+.roster-count .good { color: var(--muted); }
+.roster { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 4px 4px 10px; border-radius: 999px;
+  background: var(--panel-2); border: 1px solid var(--line); font-weight: 600;
+}
+.tag .no { font-size: 11px; color: var(--muted); }
+.tag .x {
+  width: 24px; height: 24px; border: 0; border-radius: 50%;
+  background: transparent; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer;
+}
+.tag .x:hover { background: var(--mafia-bg); color: var(--mafia); }
+
+/* 화면 탭: 참가자 명단 / 진행 규칙 / 역할 / 멘트 */
+.sec-tabs {
+  position: sticky; top: 57px; z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 6px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line);
+}
+.sec-tab {
+  flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 40px; padding: 6px 14px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.sec-tab small { font-size: 12px; font-weight: 600; opacity: 0.8; }
+.sec-tab:hover { color: var(--text); background: var(--panel-2); }
+.sec-tab.on { background: var(--accent); color: #fff; }
+
+/* 역할: 팀 선택 */
+.team-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.team-btn {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 8px;
+  padding: 12px; border-radius: 10px; border: 2px solid var(--line);
+  background: var(--panel-2); color: var(--muted); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+}
+.team-btn small { font-size: 12px; font-weight: 500; }
+.team-btn.mafia.on { border-color: var(--mafia); background: var(--mafia-bg); color: var(--mafia); }
+.team-btn.citizen.on { border-color: var(--citizen); background: var(--citizen-bg); color: var(--citizen); }
+.order-desc { margin: 10px 0 12px !important; }
+
+/* 역할 탭 */
+/* 역할 탭: 넘치면 다음 줄로 (가로 스크롤 없음) */
+.role-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.role-tab {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 38px; padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); color: var(--muted); font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.role-tab .n { font-size: 12px; padding: 0 6px; border-radius: 999px; background: var(--bg); }
+.role-tab:hover { color: var(--text); border-color: #4a5063; }
+.role-tabs.mafia .role-tab.on { background: var(--mafia); border-color: var(--mafia); color: #fff; }
+.role-tabs.citizen .role-tab.on { background: var(--citizen); border-color: var(--citizen); color: #fff; }
+.role-tab.on .n { background: rgba(0, 0, 0, 0.25); color: #fff; }
+.role-tab.add { background: transparent; border-style: dashed; color: var(--accent); }
+
+.role-detail { padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.role-detail.mafia { box-shadow: inset 4px 0 0 var(--mafia); }
+.role-detail.citizen { box-shadow: inset 4px 0 0 var(--citizen); }
+.role-detail .grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.role-detail .grid.two { grid-template-columns: 1fr 1fr; }
+.role-detail textarea { resize: vertical; }
+@media (max-width: 640px) { .role-detail .grid.two { grid-template-columns: 1fr; } }
+.empty { padding: 16px; border-radius: 8px; background: var(--warn-bg); color: var(--warn); font-weight: 600; margin: 12px 0 0; }
+.small { font-size: 13px; }
+
+/* 멘트: 라벨과 입력을 한 줄에 */
+.script-row { display: grid !important; grid-template-columns: 200px 1fr; align-items: start; gap: 12px !important; }
+.script-row > span { padding-top: 9px; }
+@media (max-width: 640px) { .script-row { grid-template-columns: 1fr; } .script-row > span { padding-top: 0; } }

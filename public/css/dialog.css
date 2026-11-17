@@ -1,0 +1,22 @@
+/* 공용 알림창(alert / confirm) 모달 */
+.dlg-backdrop {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex; align-items: center; justify-content: center;
+}
+.dlg-box {
+  width: min(400px, calc(100vw - 32px));
+  background: #fff; border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  padding: 22px 24px 18px;
+  font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif;
+  color: #222;
+}
+.dlg-title { font-size: 16px; font-weight: 700; margin: 0 0 10px; }
+.dlg-msg   { font-size: 14px; line-height: 1.6; color: #333; white-space: pre-line; margin: 0 0 18px; }
+.dlg-btns  { display: flex; justify-content: flex-end; gap: 8px; }
+.dlg-btn   { min-width: 76px; padding: 8px 14px; border-radius: 6px; border: 1px solid #cfd4da;
+             background: #f5f6f8; color: #222; font-size: 14px; cursor: pointer; }
+.dlg-btn.primary { background: #2f6fed; border-color: #2f6fed; color: #fff; }
+.dlg-btn.danger  { background: #d93838; border-color: #d93838; color: #fff; }
+.dlg-btn:focus   { outline: 2px solid #9db8ff; outline-offset: 1px; }

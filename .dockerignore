@@ -1,0 +1,23 @@
+.git
+.gitignore
+*.md
+.env
+.env.*
+Dockerfile
+docker-compose.yml
+.dockerignore
+.DS_Store
+.vscode
+.idea
+coverage
+
+node_modules
+dist
+build
+out
+npm-debug.log*
+yarn-error.log*
+
+# 실행 중 쓰는 데이터는 이미지에 넣지 않는다 (볼륨으로 연결)
+data
+db-mcp.json

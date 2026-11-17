@@ -1,0 +1,129 @@
+/* 사회자 콘솔 */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 20px; background: rgba(18, 19, 24, 0.95); border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand h1 { font-size: 18px; }
+.top-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.phase-badge { padding: 3px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--panel-2); }
+.phase-badge.day { background: #f5c14a; color: #3a2a00; }
+.phase-badge.night { background: #3b3f8f; color: #dfe2ff; }
+.phase-badge.over { background: var(--mafia); color: #fff; }
+
+body[data-theme="night"] { background: #0b0c14; }
+
+.layout {
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px;
+  max-width: 1400px; margin: 0 auto; padding: 20px;
+}
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+}
+
+.stage, .side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.card h2 { font-size: 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+.card h3 { font-size: 15px; margin-bottom: 10px; }
+.small { font-size: 13px; }
+
+.actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+
+/* 읽어 주는 문장 */
+.announce p { font-size: 22px; font-weight: 600; line-height: 1.55; margin: 6px 0; white-space: pre-line; }
+.announce p.muted, .announce .small { font-size: 13px; font-weight: 400; }
+.announce.day { border-left: 5px solid #f5c14a; }
+.announce.night { border-left: 5px solid #6c72d9; background: #151729; }
+.announce.over { border-left: 5px solid var(--mafia); }
+
+.role-card.mafia { border-color: rgba(229, 72, 77, 0.5); }
+.role-card.citizen { border-color: rgba(70, 167, 88, 0.45); }
+.role-title { font-size: 28px !important; }
+.role-line { margin-bottom: 6px; font-size: 16px; }
+.step-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; }
+.cnt { font-size: 14px; font-weight: 600; color: var(--muted); margin-left: auto; }
+.guide p { margin: 4px 0; font-size: 17px; }
+.ability { margin: 0 0 8px; }
+
+/* 사람 고르기 */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 92px; min-height: 52px; padding: 6px 12px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
+  color: var(--text); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer;
+}
+.chip small { font-size: 11px; font-weight: 500; color: var(--muted); }
+.chip small.mafia { color: var(--mafia); }
+.chip small.citizen { color: var(--citizen); }
+.chip:hover:not(:disabled) { border-color: var(--accent); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip.on small { color: #e6eeff; }
+.chip.taken { opacity: 0.35; }
+.chip.pass { border-style: dashed; }
+.chip:disabled { cursor: not-allowed; }
+
+/* 타이머 */
+.timer-card { text-align: center; }
+.timer { font-size: clamp(64px, 14vw, 140px); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 2px; }
+.timer.urgent { color: var(--warn); }
+.timer.done { color: var(--mafia); animation: blink 0.6s steps(2) 5; }
+@keyframes blink { 50% { opacity: 0.2; } }
+.timer-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }
+
+.note { padding: 10px 14px; border-radius: 8px; background: var(--panel-2); font-weight: 600; }
+.note.warn { background: var(--warn-bg); color: var(--warn); }
+.note.mafia { background: var(--mafia-bg); color: var(--mafia); }
+
+.verdict { margin-top: 14px; padding: 16px; border-radius: 8px; text-align: center; font-size: 24px; font-weight: 800; }
+.verdict.mafia { background: var(--mafia-bg); color: var(--mafia); }
+.verdict.citizen { background: var(--citizen-bg); color: var(--citizen); }
+.verdict.blocked { background: var(--warn-bg); color: var(--warn); }
+
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl tr.dead td { color: var(--muted); }
+
+.comp { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 16px; }
+.comp li { display: flex; align-items: center; gap: 8px; }
+.count-line { margin: 10px 0 0; }
+.errs { color: var(--mafia); margin: 8px 0 0; padding-left: 20px; }
+.howto { margin: 0; padding-left: 20px; }
+.howto li { margin: 4px 0; }
+
+.host-only summary { cursor: pointer; font-weight: 700; color: var(--warn); }
+.host-only ul { margin: 10px 0 0; padding-left: 20px; }
+
+/* 참가자 현황 */
+.plist { list-style: none; margin: 0; padding: 0; }
+.plist li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.plist li.dead .nm { text-decoration: line-through; color: var(--muted); }
+.plist .no { width: 22px; color: var(--muted); font-size: 12px; text-align: right; }
+.plist .nm { font-weight: 600; }
+.plist .rl { font-size: 12px; font-weight: 700; }
+.plist .rl.mafia { color: var(--mafia); }
+.plist .rl.citizen { color: var(--citizen); }
+
+.log { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; font-size: 13px; }
+.log li { padding: 4px 0; border-bottom: 1px dashed var(--line); }
+.log li.death { color: #ff9c9f; }
+.log li.win { color: var(--warn); font-weight: 700; }
+.log li.night { color: #b7bbf0; }
+
+/* 이번 판 참가자 선택 */
+.roster { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px; padding: 6px 14px; border-radius: 999px;
+  border: 1px solid var(--line); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.tag .no { font-size: 11px; color: var(--muted); }
+.tag.in { background: var(--citizen-bg); border-color: rgba(70, 167, 88, 0.5); color: var(--text); }
+.tag.out { background: transparent; border-style: dashed; color: var(--muted); text-decoration: line-through; }
+.tag.out small { text-decoration: none; font-size: 11px; color: var(--warn); }
+.empty { padding: 16px; border-radius: 8px; background: var(--warn-bg); color: var(--warn); font-weight: 600; margin: 0; }

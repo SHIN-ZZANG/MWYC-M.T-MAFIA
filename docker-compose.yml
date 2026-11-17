@@ -1,0 +1,26 @@
+services:
+  mwyc-mt-mafia:
+    build:
+      context: .
+    container_name: mwyc-mt-mafia
+    user: "0:0"                          # root 권한으로 실행 (모든 파일/폴더 생성 및 쓰기 허용)
+    ports:
+      - "3000:3000"                      # 좌변 = 외부 공개 포트 / 우변 = 컨테이너 내부 포트(항상 3000)
+    env_file:
+      - .env
+    environment:                         # .env 의 PORT · HOST · DATA_DIR(노트북용 값)보다 우선한다
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      DATA_DIR: /app/data
+    volumes:
+      - ./data:/app/data                 # 명단 · 설정 · 게임 상태 JSON 파일 (컨테이너를 다시 만들어도 남는다)
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options: { max-size: "10m", max-file: "3" }

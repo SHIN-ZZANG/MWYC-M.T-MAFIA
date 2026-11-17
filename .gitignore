@@ -1,0 +1,9 @@
+node_modules/
+.env
+.DS_Store
+Thumbs.db
+*.log
+db-mcp.json
+
+# 설정 · 게임 상태 저장 파일
+data/

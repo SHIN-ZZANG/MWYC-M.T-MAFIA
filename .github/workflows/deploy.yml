@@ -1,0 +1,112 @@
+name: deploy
+
+# master → 운영. 서버 폴더에서 git pull 후 docker compose 로 다시 띄운다.
+on:
+  push:
+    branches: [master]
+
+# 같은 브랜치 배포가 겹치지 않게 앞 배포가 끝날 때까지 기다린다
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PROJECT: ${{ github.event.repository.name }}
+      BRANCH: ${{ github.ref_name }}
+      SSH_PORT: ${{ secrets.SSH_PORT }}
+      SERVER_IP: ${{ secrets.SERVER_IP }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
+    steps:
+      # 서버 폴더는 이름을 그대로 적는다 — 저장소 이름으로 만들면 이름을 바꿀 때 깨진다
+      # 운영 주소가 아직 없어 알림 링크는 실행 로그로 대신한다
+      - name: 배포 대상 정하기
+        run: |
+          echo "DEPLOY_DIR=/opt/chshin/docker/project/mwyc/MWYC-M.T-MAFIA" >> "$GITHUB_ENV"
+          echo "SERVICE_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> "$GITHUB_ENV"
+          echo "ENV_LABEL=운영" >> "$GITHUB_ENV"
+
+      - name: SSH 준비
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 400 ~/.ssh/deploy_key
+          ssh-keyscan -p "$SSH_PORT" "$SERVER_IP" >> ~/.ssh/known_hosts
+
+      # 서버가 GitHub 에서 받아 갈 때 쓰는 키는 이것과 다른 키다(계정에 등록한 서버 키)
+      - name: 서버 배포
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SERVER_USER@$SERVER_IP" "
+            cd $DEPLOY_DIR &&
+            git pull origin $BRANCH &&
+            docker compose down &&
+            docker compose up -d --build &&
+            docker image prune -f
+          "
+
+      - name: 디스코드 알림
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          ACTOR: ${{ github.actor }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_NUMBER: ${{ github.run_number }}
+          SUCCESS_WEBHOOK: ${{ secrets.DISCORD_DEPLOY_SUCCESS_WEBHOOK }}
+          FAIL_WEBHOOK: ${{ secrets.DISCORD_DEPLOY_FAIL_WEBHOOK }}
+        run: |
+          TITLE="${COMMIT_MSG%%$'\n'*}"
+          # 커밋 제목 등에 " 가 있어도 JSON 이 깨지지 않도록 jq 로 만든다
+          if [ "$JOB_STATUS" = "success" ]; then
+            echo "배포 성공: #배포-성공 채널로 알림 전송 중..."
+            PAYLOAD=$(jq -n \
+              --arg project "$PROJECT" --arg env "$ENV_LABEL" --arg url "$SERVICE_URL" \
+              --arg branch "$BRANCH" --arg user "$ACTOR" --arg title "$TITLE" --arg run "$RUN_NUMBER" \
+              '{
+                username: "GitHub 배포 알림 Bot",
+                avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+                embeds: [{
+                  title: ("🚀 [" + $project + " · " + $env + "] 배포 성공"),
+                  description: "원격 서버의 컨테이너가 정상적으로 재빌드 및 기동되었습니다.",
+                  url: $url,
+                  color: 5763719,
+                  fields: [
+                    { name: "브랜치", value: $branch, inline: true },
+                    { name: "실행자", value: $user, inline: true },
+                    { name: "커밋 내용", value: $title, inline: false }
+                  ],
+                  footer: { text: ("GitHub Actions #" + $run) }
+                }]
+              }')
+            WEBHOOK="$SUCCESS_WEBHOOK"
+          else
+            echo "배포 실패: #배포-실패 채널로 알림 전송 중..."
+            PAYLOAD=$(jq -n \
+              --arg project "$PROJECT" --arg env "$ENV_LABEL" --arg job "$RUN_URL" \
+              --arg branch "$BRANCH" --arg user "$ACTOR" --arg run "$RUN_NUMBER" \
+              '{
+                username: "GitHub 배포 알림 Bot",
+                avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+                embeds: [{
+                  title: ("🚨 [" + $project + " · " + $env + "] 배포 실패"),
+                  description: "원격 서버 배포 도중 에러가 발생했습니다.\n로그를 확인하고 조치해주세요.",
+                  url: $job,
+                  color: 16739840,
+                  fields: [
+                    { name: "브랜치", value: $branch, inline: true },
+                    { name: "실행자", value: $user, inline: true },
+                    { name: "실패 원인 확인", value: ("[실행 로그 바로가기](" + $job + ")"), inline: false }
+                  ],
+                  footer: { text: ("GitHub Actions #" + $run) }
+                }]
+              }')
+            WEBHOOK="$FAIL_WEBHOOK"
+          fi
+          # 알림 실패는 로그에 남기되 배포 결과에는 영향을 주지 않는다
+          curl -sS --fail -H "Content-Type: application/json" -d "$PAYLOAD" "$WEBHOOK" \
+            || echo "⚠️ Discord 알림 전송 실패"
