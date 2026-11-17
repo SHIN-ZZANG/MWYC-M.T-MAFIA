@@ -2,7 +2,7 @@
 (function () {
   let queue = Promise.resolve();          // 창을 하나씩만 띄우기 위한 대기열
 
-  function open({ title, message, buttons }) {
+  function open({ title, message, buttons, choices = [] }) {
     return new Promise((resolve) => {
       const backdrop = document.createElement('div');
       backdrop.className = 'dlg-backdrop';
@@ -23,6 +23,30 @@
       p.className = 'dlg-msg';
       p.textContent = message;            // innerHTML 금지 (XSS 방어)
       box.appendChild(p);
+
+      // 선택지 목록(dlg.choice): 제목 + 설명을 한 버튼 안에 세로로 쌓는다
+      if (choices.length) {
+        const list = document.createElement('div');
+        list.className = 'dlg-choices';
+        choices.forEach((c) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'dlg-choice' + (c.danger ? ' danger' : ' primary');
+          const t = document.createElement('span');
+          t.className = 'dlg-choice-title';
+          t.textContent = c.label;
+          btn.appendChild(t);
+          if (c.desc) {
+            const d = document.createElement('span');
+            d.className = 'dlg-choice-desc';
+            d.textContent = c.desc;
+            btn.appendChild(d);
+          }
+          btn.addEventListener('click', () => close(c.value));
+          list.appendChild(btn);
+        });
+        box.appendChild(list);
+      }
 
       const btnWrap = document.createElement('div');
       btnWrap.className = 'dlg-btns';
@@ -63,14 +87,10 @@
   }
 
   window.dlg = {
-    // 여러 갈래 중 하나 고르기. options: [{ label, value, primary?, danger? }] — 취소하면 null
+    // 여러 갈래 중 하나 고르기. options: [{ label, desc?, value, danger? }] — 취소 · Enter · Esc 는 null
     choice(message, title = '선택', options = []) {
-      return enqueue({ title, message,
-        buttons: [
-          { label: '취소', value: null, cancel: true },
-          ...options.map((o) => ({ label: o.label, value: o.value, primary: !!o.primary,
-            style: o.danger ? 'danger' : o.primary ? 'primary' : '' })),
-        ] });
+      return enqueue({ title, message, choices: options,
+        buttons: [{ label: '취소', value: null, cancel: true }] });
     },
     alert(message, title = '알림') {
       return enqueue({ title, message,

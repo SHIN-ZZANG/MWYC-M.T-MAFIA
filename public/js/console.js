@@ -437,12 +437,10 @@ document.addEventListener('click', async (e) => {
     case 'restart': {
       if (!g) break;
       const inAssign = g.phase === 'assign';
-      const opts = [{ label: '역할 다시 배정', value: 'reassign', danger: true }];
-      if (!inAssign) opts.push({ label: '같은 역할로 1일차 낮부터', value: 'day1', danger: true });
-      const pick = await dlg.choice(
-        (inAssign ? '' : '[같은 역할로 1일차 낮부터] 배정은 그대로 두고 생존 · 능력 횟수 · 진행 기록만 처음으로 돌립니다.\n')
-        + '[역할 다시 배정] 같은 참가자로 역할 배정부터 새로 합니다. 지금 저장된 설정을 씁니다.\n\n잘못 골랐으면 [되돌리기]로 돌아올 수 있습니다.',
-        '처음부터', opts);
+      const opts = [];
+      if (!inAssign) opts.push({ label: '같은 역할로 1일차 낮부터', desc: '배정은 그대로 두고 생존 · 능력 횟수 · 진행 기록만 처음으로', value: 'day1' });
+      opts.push({ label: '역할 다시 배정', desc: '같은 참가자로 배정부터 새로 (지금 저장된 설정 사용)', value: 'reassign', danger: true });
+      const pick = await dlg.choice('어디서부터 다시 할까요? 잘못 골라도 [되돌리기]로 돌아올 수 있습니다.', '처음부터', opts);
       if (pick === 'day1') {
         history.push(JSON.stringify(g));
         if (history.length > 150) history.shift();

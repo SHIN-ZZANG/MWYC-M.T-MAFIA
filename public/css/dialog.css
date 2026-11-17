@@ -20,3 +20,18 @@
 .dlg-btn.primary { background: #2f6fed; border-color: #2f6fed; color: #fff; }
 .dlg-btn.danger  { background: #d93838; border-color: #d93838; color: #fff; }
 .dlg-btn:focus   { outline: 2px solid #9db8ff; outline-offset: 1px; }
+
+/* dlg.choice — 설명이 붙은 선택지 목록 */
+.dlg-choices { display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px; }
+.dlg-choice  { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%;
+               padding: 11px 14px; border-radius: 8px; border: 1px solid #d5dae1; border-left-width: 4px;
+               background: #fff; color: #222; text-align: left; cursor: pointer; font: inherit; }
+.dlg-choice.primary { border-left-color: #2f6fed; }
+.dlg-choice.danger  { border-left-color: #d93838; }
+.dlg-choice:hover, .dlg-choice:focus-visible { background: #f3f6fc; outline: none; }
+.dlg-choice.primary:hover, .dlg-choice.primary:focus-visible { border-color: #2f6fed; }
+.dlg-choice.danger:hover,  .dlg-choice.danger:focus-visible  { border-color: #d93838; background: #fdf4f4; }
+.dlg-choice-title { font-size: 15px; font-weight: 700; }
+.dlg-choice.primary .dlg-choice-title { color: #2f6fed; }
+.dlg-choice.danger  .dlg-choice-title { color: #d93838; }
+.dlg-choice-desc  { font-size: 13px; line-height: 1.45; color: #666; }
