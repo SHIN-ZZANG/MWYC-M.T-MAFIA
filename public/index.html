@@ -7,6 +7,13 @@
   <link rel="icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32">
   <link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#121318">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="미완예찬M.T(마피아게임)">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="stylesheet" href="/css/pwa.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/console.css">
 </head>
@@ -19,7 +26,7 @@
     </div>
     <nav class="top-actions">
       <button type="button" class="btn sm" data-act="toggle-roles" id="btn-hide">역할 가리기</button>
-      <button type="button" class="btn sm" data-act="undo" id="btn-undo">되돌리기</button>
+      <button type="button" class="btn sm" data-act="undo" id="btn-undo">↶ 이전 단계</button>
       <button type="button" class="btn sm" data-act="restart" id="btn-restart">처음부터</button>
       <a class="btn sm" href="/settings/">설정</a>
       <button type="button" class="btn sm danger" data-act="new-game" id="btn-new">새 게임</button>
@@ -33,6 +40,7 @@
 
   <link rel="stylesheet" href="/css/dialog.css">
   <script src="/js/dialog.js"></script>
+  <script src="/js/pwa.js"></script>
   <script type="module" src="/js/console.js"></script>
 </body>
 </html>

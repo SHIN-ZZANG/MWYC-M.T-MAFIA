@@ -206,7 +206,7 @@ function viewAssign() {
     <div class="chips">${chips}</div>
   </section>
   <div class="actions">
-    <button type="button" class="btn" data-act="assign-prev" ${g.assignIdx === 0 ? 'disabled' : ''}>이전 역할</button>
+    ${g.assignIdx === 0 ? '' : `<button type="button" class="btn" data-act="assign-prev">◀ ${esc(E.assignRoles(g)[g.assignIdx - 1].name)}</button>`}
     <button type="button" class="btn primary big" data-act="assign-next" ${full ? '' : 'disabled'}>다음</button>
   </div>`;
 }
@@ -223,7 +223,7 @@ function viewAssignSummary() {
     </table>
   </section>
   <div class="actions">
-    <button type="button" class="btn" data-act="assign-prev">이전 역할</button>
+    <button type="button" class="btn" data-act="assign-prev">◀ ${esc(E.assignRoles(g).at(-1)?.name ?? '이전')}</button>
     <button type="button" class="btn primary big" data-act="assign-finish">게임 시작 (1일차 낮)</button>
   </div>`;
 }
@@ -284,12 +284,14 @@ function viewResult() {
 }
 
 // 밤 진행
+const nightStepName = (st) => (st?.kind === 'role' ? `${E.roleById(g, st.roleId).name} 차례` : '밤 시작');
+
 function viewNight() {
   const step = g.nightPlan[g.nightStep];
   const total = g.nightPlan.length;
   const nav = (nextLabel, nextAct = 'night-next') => `
   <div class="actions">
-    <button type="button" class="btn" data-act="night-prev" ${g.nightStep === 0 ? 'disabled' : ''}>이전</button>
+    ${g.nightStep === 0 ? '' : `<button type="button" class="btn" data-act="night-prev">◀ ${esc(nightStepName(g.nightPlan[g.nightStep - 1]))}</button>`}
     <button type="button" class="btn primary big" data-act="${nextAct}">${nextLabel}</button>
   </div>`;
   const head = `<div class="step-head"><span class="muted">밤 진행 ${g.nightStep + 1} / ${total}</span></div>`;
@@ -362,7 +364,7 @@ function viewNightSummary(head, nav) {
   <section class="card">
     ${head}
     <h2>밤 행동 확인</h2>
-    <p class="muted">고친 것이 있으면 [이전]으로 돌아가세요. 확인을 누르면 결과가 처리됩니다.</p>
+    <p class="muted">고친 것이 있으면 아래 [◀ 역할 차례] 버튼으로 돌아가세요. 확인을 누르면 결과가 처리됩니다.</p>
     <table class="tbl">${rows}</table>
   </section>
   ${nav('밤 결과 처리 → 아침 발표', 'night-resolve')}`;
@@ -394,7 +396,7 @@ function viewSide() {
       <li>[설정]에서 참가자 명단 · 역할 · 멘트 · 타이머를 정합니다.</li>
       <li>이번 판에 쉬는 사람을 제외하고 역할을 배정합니다.</li>
       <li>사회자만 보는 화면입니다. 참가자에게 화면이 보이지 않게 하세요. 잠깐 보여 줘야 하면 [역할 가리기]를 누르세요.</li>
-      <li>잘못 눌렀으면 [되돌리기], 같은 배정으로 다시 하려면 [처음부터]를 누르세요.</li></ol></section>`;
+      <li>확정한 것을 취소하려면 [↶ 이전 단계], 같은 배정으로 다시 하려면 [처음부터]를 누르세요.</li></ol></section>`;
   }
   const sid = g.phase === 'night' ? E.seducedId(g) : null;
   const al = E.alive(g);
@@ -440,7 +442,7 @@ document.addEventListener('click', async (e) => {
       const opts = [];
       if (!inAssign) opts.push({ label: '같은 역할로 1일차 낮부터', desc: '배정은 그대로 두고 생존 · 능력 횟수 · 진행 기록만 처음으로', value: 'day1' });
       opts.push({ label: '역할 다시 배정', desc: '같은 참가자로 배정부터 새로 (지금 저장된 설정 사용)', value: 'reassign', danger: true });
-      const pick = await dlg.choice('어디서부터 다시 할까요? 잘못 골라도 [되돌리기]로 돌아올 수 있습니다.', '처음부터', opts);
+      const pick = await dlg.choice('어디서부터 다시 할까요? 잘못 골라도 [↶ 이전 단계]로 돌아올 수 있습니다.', '처음부터', opts);
       if (pick === 'day1') {
         history.push(JSON.stringify(g));
         if (history.length > 150) history.shift();
