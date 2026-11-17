@@ -36,19 +36,27 @@
   const desc = document.createElement('span');
   text.append(title, desc);
 
-  const action = document.createElement('button');
-  action.type = 'button';
-  action.className = 'btn sm primary pwa-action';
-  action.hidden = true;
+  const btns = document.createElement('div');
+  btns.className = 'pwa-btns';
 
   const close = document.createElement('button');
   close.type = 'button';
-  close.className = 'pwa-close';
-  close.setAttribute('aria-label', '안내 닫기');
-  close.textContent = '×';
-  close.addEventListener('click', () => band.remove());
+  close.textContent = '닫기';
+  close.addEventListener('click', () => hide());
 
-  band.append(icon, text, action, close);
+  const action = document.createElement('button');
+  action.type = 'button';
+  action.className = 'primary';
+  action.hidden = true;
+
+  btns.append(close, action);
+  band.append(icon, text, btns);
+
+  // 위로 올려 보낸 뒤 지운다. 움직임 줄이기 설정이면 transitionend 가 안 오므로 시간으로도 지운다.
+  function hide() {
+    band.classList.remove('on');
+    setTimeout(() => band.remove(), 400);
+  }
 
   function render() {
     action.hidden = true;
@@ -78,7 +86,7 @@
         ev.prompt();
         try {
           const { outcome } = await ev.userChoice;
-          if (outcome === 'accepted') band.remove();
+          if (outcome === 'accepted') hide();
           else render();
         } catch (err) {
           console.error('[pwa] 설치 창 오류', err);
@@ -101,8 +109,10 @@
     deferred = e;
     render();
   });
-  window.addEventListener('appinstalled', () => band.remove());
+  window.addEventListener('appinstalled', () => hide());
 
   render();
   document.body.prepend(band);
+  // 붙인 직후에 on 을 주면 옮겨 가는 모습 없이 그 자리에 나타난다 — 한 프레임 쉬고 준다.
+  requestAnimationFrame(() => requestAnimationFrame(() => band.classList.add('on')));
 })();
