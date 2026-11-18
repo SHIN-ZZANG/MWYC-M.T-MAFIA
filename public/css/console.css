@@ -134,3 +134,12 @@ body[data-theme="night"] { background: #0b0c14; }
 .done-card b { font-size: 17px; color: var(--citizen); }
 .done-card span { color: var(--muted); }
 .role-desc { margin: -2px 0 10px; font-size: 14px; color: var(--muted); }
+
+/* 유혹 안내 — 유혹당한 사람에게 보여 주는 전체 화면 */
+.note.seduced { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.seduce-notice { position: fixed; inset: 0; z-index: 9000; background: #000; color: #fff;
+                 display: flex; flex-direction: column; align-items: center; justify-content: center;
+                 gap: 2vh; padding: 24px; text-align: center; cursor: pointer; }
+.seduce-notice p { margin: 0; font-size: clamp(28px, 6vw, 64px); font-weight: 800; line-height: 1.25; }
+.seduce-notice p:first-child { font-size: clamp(56px, 14vw, 140px); }
+.seduce-notice small { position: absolute; bottom: 24px; font-size: 14px; color: #777; }

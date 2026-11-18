@@ -1,6 +1,6 @@
 // 사회자 콘솔 화면
 import * as E from './engine.js';
-import { TEAMS, ABILITIES, REVEAL_LABELS } from './defaults.js';
+import { TEAMS, ABILITIES, REVEAL_LABELS, DEFAULT_SETTINGS } from './defaults.js';
 import { initStore, adoptServer, loadSettings, saveSettings, loadGame, loadHistory, saveGameState, splitNames, uniqueNames } from './store.js';
 import { beep, unlockAudio } from './sound.js';
 import { formatTime, esc } from './util.js';
@@ -292,6 +292,28 @@ function viewResult() {
   <div class="actions">${next}</div>`;
 }
 
+// 유혹당한 사람에게 보여 줄 전체 화면 안내 — 아무 데나 누르거나 Esc 로 닫는다
+function showSeduceNotice() {
+  const text = g.settings.scripts.seducedNotice ?? DEFAULT_SETTINGS.scripts.seducedNotice;
+  const wrap = document.createElement('div');
+  wrap.className = 'seduce-notice';
+  wrap.setAttribute('role', 'dialog');
+  wrap.setAttribute('aria-modal', 'true');
+  for (const line of String(text).split('\n')) {
+    const p = document.createElement('p');
+    p.textContent = line; // 멘트는 설정에서 온 글이라 textContent 로만 넣는다
+    wrap.appendChild(p);
+  }
+  const hint = document.createElement('small');
+  hint.textContent = '화면을 누르면 닫힙니다';
+  wrap.appendChild(hint);
+  const close = () => { document.removeEventListener('keydown', onKey, true); wrap.remove(); };
+  const onKey = (e) => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); close(); } };
+  wrap.addEventListener('click', close);
+  document.addEventListener('keydown', onKey, true);
+  document.body.appendChild(wrap);
+}
+
 // 밤 역할 카드에 붙는 능력 한 줄 설명 — 규칙은 고정, 횟수만 설정에서 온다
 function abilityDesc(r) {
   const n = Number(r.opts?.uses);
@@ -338,8 +360,9 @@ function viewNight() {
   const notes = [];
   if (dead) notes.push(`<div class="note warn">이 역할은 모두 죽었습니다. 다른 역할처럼 멘트를 읽고 잠시 기다린 뒤 넘어가세요.</div>`);
   if (exhausted) notes.push(`<div class="note warn">능력을 이미 다 썼습니다. 호출만 하고 넘어가세요.</div>`);
-  if (blocked && !dead) notes.push(`<div class="note mafia">마담에게 유혹당했습니다. 평소처럼 진행하되 이번 밤 능력은 무효입니다.</div>`);
-  if (r.ability === 'investigate' && !noInput) notes.push(`<div class="note">경찰이 지목한 사람을 고르면 아래에 결과가 뜹니다. 경찰에게만 엄지로 조용히 알려 주세요 — 👍 마피아 / 👎 아님. 결과는 아침 발표에 나오지 않습니다.</div>`);
+  if (blocked && !dead) notes.push(`<div class="note mafia seduced"><span>마담에게 유혹당했습니다. 이번 밤 능력은 무효입니다. 고개를 든 사람에게 안내 화면을 보여 주세요.</span>
+    <button type="button" class="btn danger" data-act="seduce-notice">📢 본인에게 안내 화면 보여 주기</button></div>`);
+  if (r.ability === 'investigate' && !noInput && !blocked) notes.push(`<div class="note">경찰이 지목한 사람을 고르면 아래에 결과가 뜹니다. 경찰에게만 엄지로 조용히 알려 주세요 — 👍 마피아 / 👎 아님. 결과는 아침 발표에 나오지 않습니다.</div>`);
   if (left !== null && left !== undefined && !exhausted) notes.push(`<div class="note">남은 사용 횟수: ${left}회</div>`);
 
   let body = '';
@@ -372,7 +395,7 @@ function viewNight() {
 
 function investigateResult(targetId, blocked) {
   const p = E.playerById(g, targetId);
-  if (blocked) return `<div class="verdict blocked">유혹당함 — 결과를 알려 주지 마세요<br><small>유혹당한 걸 들키지 않게, 평소처럼 엄지를 보여 주되 아무 쪽이나 보여 주세요</small></div>`;
+  if (blocked) return `<div class="verdict blocked">유혹당함 — 결과를 알려 주지 마세요<br><small>위의 [안내 화면 보여 주기]로 유혹당한 것을 알려 주세요</small></div>`;
   const isMafia = E.teamOf(g, p) === 'mafia';
   return `<div class="verdict ${isMafia ? 'mafia' : 'citizen'}">${esc(p.name)} 님은 ${isMafia ? '마피아입니다 👍' : '마피아가 아닙니다 👎'}</div>`;
 }
@@ -453,6 +476,7 @@ document.addEventListener('click', async (e) => {
   const id = el.dataset.id || null;
 
   switch (el.dataset.act) {
+    case 'seduce-notice': showSeduceNotice(); break;
     case 'toggle-roles':
       hideRoles = !hideRoles;
       writePref('mafia.hideRoles', hideRoles ? '1' : '0');
