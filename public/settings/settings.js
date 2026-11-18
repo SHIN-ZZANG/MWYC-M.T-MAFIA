@@ -81,7 +81,10 @@ function viewRules() {
     </div>
     <div class="grid mt">
       <label class="check"><input type="checkbox" data-path="beep" ${S.beep ? 'checked' : ''}> 타이머가 끝나면 "띠띠띠" 효과음</label>
-      <label class="check"><input type="checkbox" data-path="callDeadRoles" ${S.callDeadRoles ? 'checked' : ''}> 죽은 역할도 밤에 호출 (누가 죽었는지 숨김)</label>
+      <div class="grid-full">
+        <label class="check"><input type="checkbox" data-path="callDeadRoles" ${S.callDeadRoles ? 'checked' : ''}> 죽은 역할도 밤에 호출 (누가 죽었는지 숨김)</label>
+        <p class="opt-help">역할이 모두 죽어도 평소처럼 불러서, 밤 호출 순서로 누가 죽었는지 드러나지 않게 합니다.<br>끄면 밤이 조금 짧아지지만 어떤 역할이 죽었는지 짐작할 수 있습니다. (권장: 켬)</p>
+      </div>
     </div>
   </section>`;
 }

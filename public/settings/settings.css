@@ -115,3 +115,5 @@
 .script-row { display: grid !important; grid-template-columns: 200px 1fr; align-items: start; gap: 12px !important; }
 .script-row > span { padding-top: 9px; }
 @media (max-width: 640px) { .script-row { grid-template-columns: 1fr; } .script-row > span { padding-top: 0; } }
+.opt-help { margin: 4px 0 0 26px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.grid-full { grid-column: 1 / -1; }
