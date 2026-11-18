@@ -47,7 +47,7 @@ body[data-theme="night"] { background: #0b0c14; }
 .role-line { margin-bottom: 6px; font-size: 16px; }
 .step-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; }
 .cnt { font-size: 14px; font-weight: 600; color: var(--muted); margin-left: auto; }
-.guide p { margin: 4px 0; font-size: 17px; }
+.guide p { margin: 2px 0; font-size: 14px; line-height: 1.5; }
 .ability { margin: 0 0 8px; }
 
 /* 사람 고르기 */

@@ -354,7 +354,8 @@ function viewNight() {
   const left = E.usesLeft(g, r.id);
   const exhausted = left === 0;
   const blocked = E.isBlocked(g, r.id);
-  const noInput = dead || exhausted || r.ability === 'lovers';
+  // 유혹당한 역할은 능력이 무효라 지목을 받지 않는다
+  const noInput = dead || exhausted || blocked || r.ability === 'lovers';
   const chosen = g.nightActions[r.id] ?? null;
 
   const notes = [];
@@ -566,7 +567,14 @@ document.addEventListener('click', async (e) => {
     case 'night-next': touch(() => { g.nightStep = Math.min(g.nightPlan.length - 1, g.nightStep + 1); }); break;
     case 'night-pick': {
       const step = g.nightPlan[g.nightStep];
-      touch(() => { g.nightActions[step.roleId] = id; });
+      if (E.isBlocked(g, step.roleId)) break;
+      touch(() => {
+        g.nightActions[step.roleId] = id;
+        // 유혹 대상이 바뀌면 새로 유혹당한 역할의 이전 지목은 지운다(무효 상태에서 남은 값이 되살아나지 않게)
+        if (E.roleById(g, step.roleId).ability === 'seduce') {
+          for (const r of g.settings.roles) if (E.isBlocked(g, r.id)) delete g.nightActions[r.id];
+        }
+      });
       break;
     }
     case 'night-resolve': commit(() => E.resolveNight(g)); break;
