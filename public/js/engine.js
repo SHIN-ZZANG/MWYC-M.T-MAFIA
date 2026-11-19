@@ -1,7 +1,15 @@
 // 게임 규칙 엔진. 화면과 무관한 순수 로직만 둔다. 상태(g)를 직접 고친다.
-import { ABILITIES, TEAMS } from './defaults.js';
+import { ABILITIES, TEAMS, DEFAULT_SETTINGS } from './defaults.js';
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
+// 진행 중인 게임은 시작할 때의 설정을 쓰므로, 나중에 생긴 멘트는 기본값으로 채운다
+const DEFAULT_SCRIPTS = DEFAULT_SETTINGS.scripts;
+
+// 빈 줄로 나눈 문구 중 하나를 무작위로 고른다(한 덩어리 안의 줄바꿈은 그대로)
+function pickVariant(text) {
+  const list = String(text ?? '').split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+  return list.length ? list[Math.floor(Math.random() * list.length)] : '';
+}
 
 export function fill(tpl, vars = {}) {
   return String(tpl ?? '').replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
@@ -281,7 +289,12 @@ export function resolveNight(g) {
   // 마피아 공격
   for (const r of byAb('mafiaKill')) {
     const t = act[r.id];
-    if (isBlocked(g, r.id)) { report.push(`${r.name}: 마담에게 유혹당해 공격 무효`); continue; }
+    if (isBlocked(g, r.id)) {
+      const line = pickVariant(S.scripts.mafiaSeduced ?? DEFAULT_SCRIPTS.mafiaSeduced);
+      if (line) lines.push(line);
+      report.push(`${r.name}: 마담에게 유혹당해 공격 무효`);
+      continue;
+    }
     if (!t) { report.push(`${r.name}: 공격 안 함`); continue; }
     const p = playerById(g, t);
     const pr = roleOf(g, p);
