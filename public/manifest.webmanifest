@@ -6,6 +6,7 @@
   "id": "/",
   "start_url": "/",
   "scope": "/",
+  "related_applications": [{ "platform": "webapp", "url": "https://mt-mafia.mwyc.cloud/manifest.webmanifest" }],
   "display": "standalone",
   "background_color": "#121318",
   "theme_color": "#121318",

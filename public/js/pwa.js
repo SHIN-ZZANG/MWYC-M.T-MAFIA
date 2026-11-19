@@ -1,6 +1,14 @@
 // 홈 화면 앱(PWA). 서비스 워커를 등록하고, 브라우저로 접속했을 때 맨 위에 설치 안내 띠를 띄운다.
-// 앱으로 열었으면 띠를 띄우지 않는다. [닫기]는 이번 화면에서만 숨기고 다음 접속 때 다시 보인다.
+// 띠를 띄우지 않는 경우: 앱으로 열었을 때, 이 기기에서 앱으로 연 적이 있거나 설치했을 때,
+// 브라우저가 "이미 설치됨"이라고 알려 줄 때(Chrome 계열), [닫기]를 누르고 30일이 안 지났을 때.
+// 아이폰은 Safari 와 홈 화면 앱의 저장 공간이 달라 설치 여부를 알 수 없다 — [닫기] 기억으로만 숨긴다.
 (function () {
+  const KEY_INSTALLED = 'pwa.installed';
+  const KEY_DISMISSED = 'pwa.dismissedUntil';
+  const DISMISS_MS = 30 * 24 * 60 * 60 * 1000;
+  const get = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+  const set = (k, v) => { try { localStorage.setItem(k, v); } catch { /* 저장이 막혀 있으면 이번만 숨긴다 */ } };
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').catch((err) => console.error('[pwa] 서비스 워커 등록 실패', err));
@@ -10,7 +18,9 @@
   const standalone = window.matchMedia('(display-mode: standalone)').matches
     || window.matchMedia('(display-mode: fullscreen)').matches
     || window.navigator.standalone === true;
-  if (standalone) return;
+  if (standalone) { set(KEY_INSTALLED, '1'); return; }
+  if (get(KEY_INSTALLED) === '1') return;
+  if (Number(get(KEY_DISMISSED)) > Date.now()) return;
 
   const ua = navigator.userAgent;
   const isKakao = /KAKAOTALK/i.test(ua);
@@ -42,7 +52,7 @@
   const close = document.createElement('button');
   close.type = 'button';
   close.textContent = '닫기';
-  close.addEventListener('click', () => hide());
+  close.addEventListener('click', () => { set(KEY_DISMISSED, String(Date.now() + DISMISS_MS)); hide(); });
 
   const action = document.createElement('button');
   action.type = 'button';
@@ -109,10 +119,21 @@
     deferred = e;
     render();
   });
-  window.addEventListener('appinstalled', () => hide());
+  window.addEventListener('appinstalled', () => { set(KEY_INSTALLED, '1'); hide(); });
 
-  render();
-  document.body.prepend(band);
-  // 붙인 직후에 on 을 주면 옮겨 가는 모습 없이 그 자리에 나타난다 — 한 프레임 쉬고 준다.
-  requestAnimationFrame(() => requestAnimationFrame(() => band.classList.add('on')));
+  function show() {
+    render();
+    document.body.prepend(band);
+    // 붙인 직후에 on 을 주면 옮겨 가는 모습 없이 그 자리에 나타난다 — 한 프레임 쉬고 준다.
+    requestAnimationFrame(() => requestAnimationFrame(() => band.classList.add('on')));
+  }
+
+  // Chrome 계열은 이 앱이 설치돼 있는지 물어볼 수 있다(manifest 의 related_applications)
+  if (navigator.getInstalledRelatedApps) {
+    navigator.getInstalledRelatedApps()
+      .then((apps) => { if (apps.length) set(KEY_INSTALLED, '1'); else show(); })
+      .catch((err) => { console.error('[pwa] 설치 여부 확인 실패', err); show(); });
+  } else {
+    show();
+  }
 })();
