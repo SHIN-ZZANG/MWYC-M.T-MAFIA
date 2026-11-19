@@ -36,7 +36,10 @@ const OLD_TEXTS = {
     guide: ['마피아 팀입니다. 밤마다 서로 의논해서 한 명을 공격합니다.\n마담이 누구인지는 서로 압니다.'],
     nightScript: ['마피아는 고개를 들어 주세요. 서로 얼굴을 확인하고, 오늘 밤 죽일 사람을 한 명 지목해 주세요.'],
   },
-  madam: { guide: ['마피아 팀입니다. 밤마다 한 명을 유혹해서 그 사람의 그날 밤 능력을 막습니다.'] },
+  madam: { guide: [
+    '마피아 팀입니다. 밤마다 한 명을 유혹해서 그 사람의 그날 밤 능력을 막습니다.',
+    '마피아 팀입니다. 밤마다 한 명을 유혹해서 그 사람의 그날 밤 능력을 막습니다.\n마피아가 누구인지는 모릅니다. 마피아를 유혹하면 그날 밤 마피아 공격이 무효가 됩니다.\n경찰 조사 · 처형 · 마피아 공격으로 죽으면 시민으로 나옵니다(스나이퍼에게 죽으면 마피아, 기자에게는 마담).',
+  ] },
   lovers: { guide: ['시민 팀입니다. 두 사람은 연인입니다.\n한 명이 마피아에게 죽으면 다른 한 명도 같이 죽습니다.'] },
 };
 function upgradeTexts(r, d) {
@@ -56,6 +59,8 @@ export function normalizeSettings(s) {
   if (!s || typeof s !== 'object') return d;
   const out = { ...d, ...s, scripts: { ...d.scripts, ...(s.scripts ?? {}) } };
   out.roles = Array.isArray(s.roles) && s.roles.length ? s.roles : d.roles;
+  // 예전 기본 멘트를 그대로 쓰고 있으면 새 멘트로
+  if (out.scripts.nightKill === '밤사이 {name} 님이 마피아에게 살해당했습니다.') out.scripts.nightKill = d.scripts.nightKill;
   out.roles = out.roles.map((r) => upgradeTexts(r, d)).map((r) => ({
     ...r,
     count: Math.max(0, Number(r.count) || 0),

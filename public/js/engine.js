@@ -140,12 +140,11 @@ function chainLovers(g, deaths, healed = new Set(), saved = []) {
   }
 }
 
-// 처형 · 밤 사망 공개는 팀만(고정).
-// 마담은 마피아 팀(승리 집계도 마피아)이지만, 스나이퍼에게 죽을 때만 마피아로 공개하고 나머지는 시민으로 공개한다
+// 처형 · 밤 사망 공개는 팀만(고정). 마담도 팀(마피아)으로만 공개한다.
+// 마피아 공격으로 죽은 사람은 정체를 밝히지 않는다(마담이 마피아에게 죽어도 드러나지 않게)
 function revealSuffix(g, p, cause) {
-  const asCitizen = roleOf(g, p)?.ability === 'seduce' && cause !== 'snipe';
-  const reveal = asCitizen ? TEAMS.citizen : revealText(g, p, 'team');
-  return [fill(g.settings.scripts.revealLine, { name: p.name, reveal })];
+  if (cause === 'mafia') return [];
+  return [fill(g.settings.scripts.revealLine, { name: p.name, reveal: revealText(g, p, 'team') })];
 }
 
 // 낮 투표 결과. playerId 가 null 이면 처형 없음.
@@ -360,7 +359,9 @@ export function resolveNight(g) {
     if (t) report.push(`${r.name} 조사: ${playerById(g, t).name} → ${looksMafia(g, playerById(g, t)) ? '마피아' : '시민'}${isBlockedAtNight(g, r.id, sid) ? ' (유혹당해 결과 안 알려 줌)' : ''}`);
   }
 
+  // 죽음 · 치료 · 방탄 · 기자 공개 등 무슨 일이든 있었으면 "사건이 벌어졌습니다"를 먼저 읽는다
   if (lines.length === 1) lines.push(S.scripts.nothing);
+  else lines.splice(1, 0, S.scripts.incident ?? '사건이 벌어졌습니다.');
 
   report.forEach((t) => addLog(g, t, 'night'));
   g.report = report;
