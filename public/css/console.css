@@ -143,6 +143,8 @@ body[data-theme="night"] { background: #0b0c14; }
 .seduce-notice p { margin: 0; font-size: clamp(28px, 6vw, 64px); font-weight: 800; line-height: 1.25; }
 .seduce-notice p:first-child { font-size: clamp(56px, 14vw, 140px); }
 .seduce-notice small { position: absolute; bottom: 24px; font-size: 14px; color: #777; }
+.seduce-notice.mafia p:last-of-type { color: var(--mafia); }
+.seduce-notice.citizen p:last-of-type { color: var(--citizen); }
 
 /* 문구 꼬리표: 능력 · 가이드 · 멘트 */
 .lbl {

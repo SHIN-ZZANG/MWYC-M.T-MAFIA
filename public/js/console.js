@@ -328,12 +328,29 @@ function viewResult() {
   <div class="actions">${next}</div>`;
 }
 
-// 고개를 든 사람에게 보여 줄 전체 화면 안내(유혹당함 · 이미 사망) — 아무 데나 누르거나 Esc 로 닫는다
-// key: seducedNotice(유혹당함) · deadNotice(이미 사망)
+// 고개를 든 사람에게 보여 줄 전체 화면 안내 — 아무 데나 누르거나 Esc 로 닫는다
+// key: policeBlocked(유혹당한 경찰) · deadNotice(이미 사망)
 function showNotice(key) {
-  const text = g.settings.scripts[key] ?? DEFAULT_SETTINGS.scripts[key];
+  showBigScreen(g.settings.scripts[key] ?? DEFAULT_SETTINGS.scripts[key]);
+}
+
+// 경찰 조사 결과 — 경찰에게만 보여 줄 전체 화면. 콘솔(명단 · 역할 표시)이 비치지 않게 가린다
+function showPoliceResult(targetId) {
+  const step = g.nightPlan[g.nightStep];
+  if (E.isBlocked(g, step.roleId)) { // 유혹당하면 결과를 알려 주지 않는다
+    showNotice('policeBlocked');
+    return;
+  }
+  const p = E.playerById(g, targetId);
+  const isMafia = E.looksMafia(g, p);
+  const lines = [isMafia ? '👍' : '👎', `${p.name} 님은`, isMafia ? '마피아입니다' : '시민입니다'];
+  showBigScreen(lines.join('\n'), isMafia ? 'mafia' : 'citizen');
+}
+
+// 줄마다 크게 띄우는 전체 화면. 첫 줄(이모지)은 더 크게. 아무 데나 누르거나 Esc · Enter 로 닫는다
+function showBigScreen(text, tone = '') {
   const wrap = document.createElement('div');
-  wrap.className = 'seduce-notice';
+  wrap.className = 'seduce-notice' + (tone ? ' ' + tone : '');
   wrap.setAttribute('role', 'dialog');
   wrap.setAttribute('aria-modal', 'true');
   for (const line of String(text).split('\n')) {
@@ -392,19 +409,18 @@ function viewNight() {
   const exhausted = left === 0;
   const blocked = E.isBlocked(g, r.id);
   // 밤 행동은 동시에 일어난다 — 유혹당해도 평소처럼 지목을 받고, 효과만 아침 처리에서 무효.
-  // 경찰만 예외: 결과를 그 자리에서 알려 줘야 하므로 지목을 받지 않고 유혹당한 것을 알린다
-  const blockedNotice = blocked && r.ability === 'investigate';
-  const noInput = dead || exhausted || blockedNotice || r.ability === 'lovers';
+  // 경찰은 결과를 그 자리에서 보여 주므로, 유혹당했으면 결과 대신 "알려 줄 수 없음" 화면을 띄운다
+  const police = r.ability === 'investigate';
+  const noInput = dead || exhausted || r.ability === 'lovers';
   const chosen = g.nightActions[r.id] ?? null;
 
   const notes = [];
   if (dead) notes.push(`<div class="note warn seduced"><span>이 역할은 모두 죽었습니다. 다른 사람들이 눈치채지 않게 평소처럼 멘트를 읽고 잠시 기다린 뒤 넘어가세요. 고개를 들었다면 [${esc(r.name)}에게 보여 줄 화면]을 눌러 보여 주세요.</span>
     <button type="button" class="btn" data-act="dead-notice">📢 ${esc(r.name)}에게 보여 줄 화면</button></div>`);
   if (exhausted) notes.push(`<div class="note warn">능력을 이미 다 썼습니다. 호출만 하고 넘어가세요.</div>`);
-  if (blocked && !dead && !blockedNotice) notes.push(`<div class="note mafia">마담에게 유혹당했습니다. 본인에게 알리지 말고 평소처럼 지목을 받으세요. 아침 처리에서 효과가 없습니다.</div>`);
-  if (blockedNotice && !dead) notes.push(`<div class="note mafia seduced"><span>마담에게 유혹당했습니다. 이번 밤 능력은 무효입니다. [${esc(r.name)}에게 보여 줄 화면]을 눌러 보여 주세요.</span>
-    <button type="button" class="btn danger" data-act="seduce-notice">📢 ${esc(r.name)}에게 보여 줄 화면</button></div>`);
-  if (r.ability === 'investigate' && !noInput && !blocked) notes.push(`<div class="note">경찰이 지목한 사람을 고르면 아래에 결과가 뜹니다. 경찰에게만 엄지로 조용히 알려 주세요 — 👍 마피아 / 👎 시민(마담도 시민으로 나옴). 결과는 아침 발표에 나오지 않습니다.</div>`);
+  if (blocked && !dead && !police) notes.push(`<div class="note mafia">마담에게 유혹당했습니다. 본인에게 알리지 말고 평소처럼 지목을 받으세요. 아침 처리에서 효과가 없습니다.</div>`);
+  if (blocked && !dead && police) notes.push(`<div class="note mafia">마담에게 유혹당했습니다. 평소처럼 지목을 받으면 결과 대신 "알려 줄 수 없음" 화면이 뜹니다. 그 화면을 경찰에게 보여 주세요.</div>`);
+  if (police && !noInput && !blocked) notes.push(`<div class="note">경찰이 지목한 사람을 누르면 결과 화면이 크게 뜹니다. 그 화면만 경찰에게 보여 주세요 — 👍 마피아 / 👎 시민(마담도 시민으로 나옴). 결과는 아침 발표에 나오지 않습니다.</div>`);
   if (left !== null && left !== undefined && !exhausted) notes.push(`<div class="note">남은 사용 횟수: ${left}회</div>`);
 
   let body = '';
@@ -412,7 +428,7 @@ function viewNight() {
     const opts = E.targetOptions(g, r.id);
     const chips = opts.map((p) => {
       const off = E.targetDisabled(g, r.id, p);
-      return `<button type="button" class="chip ${chosen === p.id ? 'on' : ''}" data-act="night-pick" data-id="${p.id}" ${off ? 'disabled' : ''}>${esc(p.name)}${roleTag(p)}</button>`;
+      return `<button type="button" class="chip ${chosen === p.id ? 'on' : ''}" data-act="night-pick" data-id="${p.id}" ${off ? 'disabled' : ''}>${esc(p.name)}${police ? '' : roleTag(p)}</button>`;
     }).join('');
     body = `
     <section class="card">
@@ -420,7 +436,7 @@ function viewNight() {
       <div class="chips">${chips}
         <button type="button" class="chip pass ${chosen === null ? 'on' : ''}" data-act="night-pick" data-id="">선택 안 함</button>
       </div>
-      ${r.ability === 'investigate' && chosen ? investigateResult(chosen, blocked) : ''}
+      ${police && chosen ? `<div class="actions"><button type="button" class="btn" data-act="police-result">📢 경찰에게 결과 다시 보여 주기</button></div>` : ''}
     </section>`;
   }
 
@@ -438,12 +454,6 @@ function viewNight() {
   ${nav(g.nightStep + 1 === total - 1 ? '호출 끝 — 결과 확인' : '다음 역할')}`;
 }
 
-function investigateResult(targetId, blocked) {
-  const p = E.playerById(g, targetId);
-  if (blocked) return `<div class="verdict blocked">유혹당함 — 결과를 알려 주지 마세요<br><small>위의 [보여 줄 화면]으로 유혹당한 것을 알려 주세요</small></div>`;
-  const isMafia = E.looksMafia(g, p);
-  return `<div class="verdict ${isMafia ? 'mafia' : 'citizen'}">${esc(p.name)} 님은 ${isMafia ? '마피아입니다 👍' : '시민입니다 👎'}</div>`;
-}
 
 function viewNightSummary(head, nav) {
   const rows = g.nightPlan.filter((s) => s.kind === 'role').map((s) => {
@@ -521,7 +531,6 @@ document.addEventListener('click', async (e) => {
   const id = el.dataset.id || null;
 
   switch (el.dataset.act) {
-    case 'seduce-notice': showNotice('seducedNotice'); break;
     case 'dead-notice': showNotice('deadNotice'); break;
     case 'toggle-roles':
       hideRoles = !hideRoles;
@@ -615,18 +624,16 @@ document.addEventListener('click', async (e) => {
     case 'night-next': touch(() => { g.nightStep = Math.min(g.nightPlan.length - 1, g.nightStep + 1); }); break;
     case 'night-pick': {
       const step = g.nightPlan[g.nightStep];
-      // 유혹당한 경찰만 지목을 받지 않는다(화면에도 칩이 없다)
-      if (E.isBlocked(g, step.roleId) && E.roleById(g, step.roleId).ability === 'investigate') break;
       if (id && E.targetDisabled(g, step.roleId, E.playerById(g, id))) break;
       touch(() => {
         g.nightActions[step.roleId] = id;
-        // 유혹 대상이 바뀌어 새로 유혹당한 경찰이 생기면 이전 조사 지목은 지운다(결과를 알려 주지 않으므로)
-        if (E.roleById(g, step.roleId).ability === 'seduce') {
-          for (const r of g.settings.roles) {
-            if (r.ability === 'investigate' && E.isBlocked(g, r.id)) delete g.nightActions[r.id];
-          }
-        }
       });
+      if (id && E.roleById(g, step.roleId).ability === 'investigate') showPoliceResult(id);
+      break;
+    }
+    case 'police-result': {
+      const t = g.nightActions[g.nightPlan[g.nightStep]?.roleId];
+      if (t) showPoliceResult(t);
       break;
     }
     case 'night-resolve': commit(() => E.resolveNight(g)); break;
