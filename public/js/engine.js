@@ -281,6 +281,12 @@ export function resolveNight(g) {
     return names.length ? `${r.name}(${names.join(', ')})` : r.name;
   };
 
+  // 유혹당해 능력이 무효가 된 역할의 위트 멘트(빈 줄로 나눈 문구 중 하나)
+  const seducedLine = (key) => {
+    const line = pickVariant(S.scripts[key] ?? DEFAULT_SCRIPTS[key]);
+    if (line) lines.push(line);
+  };
+
   const sid = seducedId(g);
   if (sid) {
     const madam = S.roles.find((r) => r.ability === 'seduce' && act[r.id] === sid);
@@ -292,8 +298,12 @@ export function resolveNight(g) {
   for (const r of byAb('heal')) {
     const t = act[r.id];
     g.roleState[r.id].lastTarget = t ?? null;
+    if (isBlocked(g, r.id)) {
+      seducedLine('doctorSeduced');
+      report.push(t ? `${actor(r)} 치료 → ${whoId(t)}: 유혹당해 무효` : `${actor(r)}: 유혹당함 (치료 안 함)`);
+      continue;
+    }
     if (!t) continue;
-    if (isBlocked(g, r.id)) { report.push(`${actor(r)} 치료 → ${whoId(t)}: 유혹당해 무효`); continue; }
     healed.add(t);
     report.push(`${actor(r)} 치료 → ${whoId(t)}`);
   }
@@ -302,8 +312,7 @@ export function resolveNight(g) {
   for (const r of byAb('mafiaKill')) {
     const t = act[r.id];
     if (isBlocked(g, r.id)) {
-      const line = pickVariant(S.scripts.mafiaSeduced ?? DEFAULT_SCRIPTS.mafiaSeduced);
-      if (line) lines.push(line);
+      seducedLine('mafiaSeduced');
       report.push(t ? `${actor(r)} 공격 → ${whoId(t)}: 마담에게 유혹당해 무효` : `${actor(r)}: 마담에게 유혹당해 공격 무효`);
       continue;
     }
@@ -328,8 +337,12 @@ export function resolveNight(g) {
   // 저격
   for (const r of byAb('snipe')) {
     const t = act[r.id];
+    if (isBlocked(g, r.id)) {
+      seducedLine('sniperSeduced');
+      report.push(t ? `${actor(r)} 저격 → ${whoId(t)}: 유혹당해 무효 (횟수 차감 안 함)` : `${actor(r)}: 유혹당함 (저격 안 함)`);
+      continue;
+    }
     if (!t) continue;
-    if (isBlocked(g, r.id)) { report.push(`${actor(r)} 저격 → ${whoId(t)}: 유혹당해 무효 (횟수 차감 안 함)`); continue; }
     // 행동은 받지만, 같은 밤 마피아에게 죽었으면(치료 · 방탄 없이) 저격은 무효 — 오발 사망도 없다
     const shooters = aliveMembers(g, r.id);
     if (shooters.every((s) => deaths.some((d) => d.p === s && d.cause === 'mafia'))) {
@@ -373,6 +386,11 @@ export function resolveNight(g) {
   // 기자 공개 (기자는 밤이 시작될 때 살아 있었어야 한다)
   for (const r of S.roles.filter((x) => x.ability === 'reveal')) {
     const t = act[r.id];
+    if (isBlockedAtNight(g, r.id, sid)) {
+      seducedLine('reporterSeduced');
+      report.push(t ? `${actor(r)} 공개 → ${whoId(t)}: 유혹당해 무효 (횟수 차감 안 함)` : `${actor(r)}: 유혹당함 (공개 안 함)`);
+      continue;
+    }
     if (!t) continue;
     const reporterAlive = aliveMembers(g, r.id).length > 0;
     const diedTonight = deaths.some((d) => d.p.roleId === r.id);
@@ -380,7 +398,6 @@ export function resolveNight(g) {
       report.push(`${actor(r)} 공개 → ${whoId(t)}: 그날 밤 이전에 사망해 공개 안 함`);
       continue;
     }
-    if (isBlockedAtNight(g, r.id, sid)) { report.push(`${actor(r)} 공개 → ${whoId(t)}: 유혹당해 무효 (횟수 차감 안 함)`); continue; }
     const st = g.roleState[r.id];
     if (st.usesLeft !== null) st.usesLeft = Math.max(0, st.usesLeft - 1);
     const p = playerById(g, t);
@@ -391,6 +408,10 @@ export function resolveNight(g) {
   // 경찰 조사는 진행 중에 바로 보여 줬으므로 기록만
   for (const r of S.roles.filter((x) => x.ability === 'investigate')) {
     const t = act[r.id];
+    if (isBlockedAtNight(g, r.id, sid)) {
+      seducedLine('policeSeduced');
+      if (!t) report.push(`${actor(r)}: 유혹당함 (조사 안 함)`);
+    }
     if (t) report.push(`${actor(r)} 조사 → ${whoId(t)}: ${isBlockedAtNight(g, r.id, sid) ? '유혹당해 결과 안 알려 줌' : `${looksMafia(g, playerById(g, t)) ? '마피아로' : '시민으로'} 알려 줌`}`);
   }
 
