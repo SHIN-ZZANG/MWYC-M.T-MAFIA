@@ -244,7 +244,7 @@ function viewIntro() {
   if (i === 0) {
     return `
     <section class="card announce night">${head}${ment([S.introStart ?? D.introStart])}
-      <p class="muted small">부를 역할: ${plan.map((id) => esc(E.roleById(g, id).name)).join(', ')} · 마담 · 의사는 부르지 않습니다</p></section>
+      <p class="muted small">부를 역할: ${plan.map((id) => esc(E.roleById(g, id).name)).join(', ')}</p></section>
     <div class="actions"><button type="button" class="btn primary big" data-act="intro-next">역할 호출 시작</button></div>`;
   }
   const r = E.roleById(g, plan[i - 1]);
