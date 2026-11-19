@@ -26,7 +26,7 @@
 
   const icon = document.createElement('img');
   icon.className = 'pwa-icon';
-  icon.src = '/icons/icon-192.png';
+  icon.src = '/icons/mwyc-192.png';
   icon.alt = '';
 
   const text = document.createElement('div');

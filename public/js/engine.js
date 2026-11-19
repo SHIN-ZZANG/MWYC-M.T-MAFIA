@@ -18,9 +18,11 @@ export const aliveMembers = (g, roleId) => members(g, roleId).filter((p) => p.al
 
 export function revealText(g, p, scope) {
   if (scope === 'role') return roleOf(g, p)?.name ?? '?';
-  if (scope === 'team') return TEAMS[teamOf(g, p)];
-  return '';
+  return TEAMS[teamOf(g, p)];
 }
+
+// 경찰 조사 결과: 마담은 마피아 팀이지만 시민으로 나온다
+export const looksMafia = (g, p) => teamOf(g, p) === 'mafia' && roleOf(g, p)?.ability !== 'seduce';
 
 export function addLog(g, text, kind = 'info') {
   g.log.push({ day: g.day, phase: g.phase, text, kind, at: Date.now() });
@@ -48,7 +50,7 @@ export function validateSetup(settings, names) {
 export function createGame(settings, names) {
   const g = {
     settings: clone(settings),
-    players: names.map((name, i) => ({
+    players: [...names].sort((a, b) => a.localeCompare(b, 'ko')).map((name, i) => ({
       id: 'p' + (i + 1), name, roleId: null, alive: true, deathDay: null, deathCause: null, shield: 0,
     })),
     phase: 'assign',
@@ -87,7 +89,21 @@ export function finishAssign(g) {
   }
   addLog(g, '역할 배정 완료 — ' + g.settings.roles
     .map((r) => `${r.name}: ${members(g, r.id).map((p) => p.name).join(', ') || '-'}`).join(' / '));
-  startDay(g);
+  startIntro(g);
+}
+
+// ── 첫 확인 (1일차 낮 전) ─────────────────────────────────────
+// 마피아(마담 제외)끼리, 연인끼리 서로 얼굴을 확인한다. 의사 · 마담은 부르지 않는다
+export const INTRO_ABILITIES = ['mafiaKill', 'lovers'];
+
+export function startIntro(g) {
+  g.introPlan = g.settings.roles
+    .filter((r) => INTRO_ABILITIES.includes(r.ability) && members(g, r.id).length)
+    .map((r) => r.id);
+  g.introStep = 0;
+  if (!g.introPlan.length) { startDay(g); return; }
+  g.phase = 'intro';
+  addLog(g, '첫 확인 — ' + g.introPlan.map((id) => roleById(g, id).name).join(', '));
 }
 
 // ── 낮 ────────────────────────────────────────────────────────
@@ -124,9 +140,12 @@ function chainLovers(g, deaths, healed = new Set(), saved = []) {
   }
 }
 
-function revealSuffix(g, p, scope) {
-  if (scope === 'none') return [];
-  return [fill(g.settings.scripts.revealLine, { name: p.name, reveal: revealText(g, p, scope) })];
+// 처형 · 밤 사망 공개는 팀만(고정).
+// 마담은 마피아 팀(승리 집계도 마피아)이지만, 스나이퍼에게 죽을 때만 마피아로 공개하고 나머지는 시민으로 공개한다
+function revealSuffix(g, p, cause) {
+  const asCitizen = roleOf(g, p)?.ability === 'seduce' && cause !== 'snipe';
+  const reveal = asCitizen ? TEAMS.citizen : revealText(g, p, 'team');
+  return [fill(g.settings.scripts.revealLine, { name: p.name, reveal })];
 }
 
 // 낮 투표 결과. playerId 가 null 이면 처형 없음.
@@ -140,7 +159,7 @@ export function execute(g, playerId) {
     const p = playerById(g, playerId);
     const r = roleOf(g, p);
     lines.push(fill(S.scripts.execution, { name: p.name }));
-    lines.push(...revealSuffix(g, p, S.revealExecution));
+    lines.push(...revealSuffix(g, p, 'execution'));
     addLog(g, `처형: ${p.name} (${r.name})`, 'death');
 
     if (r.ability === 'soloWin') {
@@ -155,7 +174,7 @@ export function execute(g, playerId) {
         kill(g, d.p, d.cause);
         if (d.cause === 'lover') {
           lines.push(fill(S.scripts.loverDeath, { name: d.p.name }));
-          lines.push(...revealSuffix(g, d.p, S.revealExecution));
+          lines.push(...revealSuffix(g, d.p, d.cause));
           addLog(g, `연인 동반 사망: ${d.p.name}`, 'death');
         }
       }
@@ -181,7 +200,9 @@ export function startNight(g) {
   g.nightActions = {};
   g.nightStep = 0;
   g.nightPlan = [{ kind: 'intro' }];
-  for (const r of S.roles) {
+  // 마담을 먼저 부른다 — 마피아를 유혹했으면 마피아 차례에 바로 무효 처리를 보여 줄 수 있게
+  const order = [...S.roles.filter((r) => r.ability === 'seduce'), ...S.roles.filter((r) => r.ability !== 'seduce')];
+  for (const r of order) {
     if (!roleWakes(g, r) || members(g, r.id).length === 0) continue;
     if (!aliveMembers(g, r.id).length && !S.callDeadRoles) continue;
     g.nightPlan.push({ kind: 'role', roleId: r.id });
@@ -219,12 +240,17 @@ export function targetOptions(g, roleId) {
     return list; // 의사 자신 · 같은 사람 연속 치료 모두 가능
   }
   if (r.ability === 'seduce') {
-    return list.filter((p) => teamOf(g, p) !== 'mafia'); // 마피아 팀은 유혹할 수 없다
+    return list.filter((p) => p.roleId !== roleId); // 마담 본인만 빼고 누구나(마피아도 가능)
   }
   if (r.ability === 'snipe' || r.ability === 'investigate' || r.ability === 'reveal') {
     return list.filter((p) => p.roleId !== roleId);
   }
   return list;
+}
+
+// 보이지만 고를 수 없는 대상: 마피아는 마피아(같은 역할)를 지목할 수 없다
+export function targetDisabled(g, roleId, p) {
+  return roleById(g, roleId).ability === 'mafiaKill' && p.roleId === roleId;
 }
 
 export function resolveNight(g) {
@@ -234,7 +260,6 @@ export function resolveNight(g) {
   const report = [];
   const deaths = [];
   const byAb = (ab) => S.roles.filter((r) => r.ability === ab && aliveMembers(g, r.id).length);
-  const scopeN = S.revealNightDeath;
 
   const sid = seducedId(g);
   if (sid) report.push(`마담 유혹: ${playerById(g, sid).name}`);
@@ -253,8 +278,8 @@ export function resolveNight(g) {
   // 마피아 공격
   for (const r of byAb('mafiaKill')) {
     const t = act[r.id];
+    if (isBlocked(g, r.id)) { report.push(`${r.name}: 마담에게 유혹당해 공격 무효`); continue; }
     if (!t) { report.push(`${r.name}: 공격 안 함`); continue; }
-    if (isBlocked(g, r.id)) { report.push(`${r.name}: 유혹당해 공격 무효`); continue; }
     const p = playerById(g, t);
     const pr = roleOf(g, p);
     const hasShield = pr.ability === 'shield' && p.shield > 0;
@@ -303,7 +328,7 @@ export function resolveNight(g) {
   for (const d of deaths) {
     kill(g, d.p, d.cause);
     lines.push(fill(S.scripts[causeTpl[d.cause]], { name: d.p.name }));
-    lines.push(...revealSuffix(g, d.p, scopeN));
+    lines.push(...revealSuffix(g, d.p, d.cause));
     addLog(g, `밤 사망: ${d.p.name} (${roleOf(g, d.p).name}, ${CAUSE_LABEL[d.cause]})`, 'death');
   }
   for (const s of loverSaved) {
@@ -332,7 +357,7 @@ export function resolveNight(g) {
   // 경찰 조사는 진행 중에 바로 보여 줬으므로 기록만
   for (const r of S.roles.filter((x) => x.ability === 'investigate')) {
     const t = act[r.id];
-    if (t) report.push(`${r.name} 조사: ${playerById(g, t).name} → ${teamOf(g, playerById(g, t)) === 'mafia' ? '마피아' : '마피아 아님'}${isBlockedAtNight(g, r.id, sid) ? ' (유혹당해 결과 안 알려 줌)' : ''}`);
+    if (t) report.push(`${r.name} 조사: ${playerById(g, t).name} → ${looksMafia(g, playerById(g, t)) ? '마피아' : '시민'}${isBlockedAtNight(g, r.id, sid) ? ' (유혹당해 결과 안 알려 줌)' : ''}`);
   }
 
   if (lines.length === 1) lines.push(S.scripts.nothing);

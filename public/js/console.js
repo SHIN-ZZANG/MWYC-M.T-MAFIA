@@ -1,6 +1,6 @@
 // 사회자 콘솔 화면
 import * as E from './engine.js';
-import { TEAMS, ABILITIES, REVEAL_LABELS, DEFAULT_SETTINGS } from './defaults.js';
+import { TEAMS, ABILITIES, DEFAULT_SETTINGS } from './defaults.js';
 import { initStore, adoptServer, loadSettings, saveSettings, loadGame, loadHistory, saveGameState, splitNames, uniqueNames } from './store.js';
 import { beep, unlockAudio } from './sound.js';
 import { formatTime, esc } from './util.js';
@@ -117,7 +117,7 @@ function render() {
   if (!g) $stage.innerHTML = viewSetup();
   else {
     const views = {
-      assign: viewAssign, 'day-talk': viewDayTalk, 'day-vote': viewDayVote, 'day-result': viewResult,
+      assign: viewAssign, intro: viewIntro, 'day-talk': viewDayTalk, 'day-vote': viewDayVote, 'day-result': viewResult,
       night: viewNight, morning: viewResult, over: viewOver,
     };
     $stage.innerHTML = (views[g.phase] ?? (() => '<p>알 수 없는 단계입니다.</p>'))();
@@ -127,7 +127,7 @@ function render() {
 
 function themeOf() {
   if (g.phase === 'over') return 'over';
-  if (g.phase === 'night') return 'night';
+  if (g.phase === 'night' || g.phase === 'intro') return 'night';
   if (g.phase === 'assign') return 'idle';
   return 'day';
 }
@@ -135,7 +135,7 @@ function themeOf() {
 function phaseLabel() {
   if (!g) return '준비';
   return {
-    assign: '역할 배정', 'day-talk': `${g.day}일차 낮 · 회의`, 'day-vote': `${g.day}일차 낮 · 투표`,
+    assign: '역할 배정', intro: '첫 확인', 'day-talk': `${g.day}일차 낮 · 회의`, 'day-vote': `${g.day}일차 낮 · 투표`,
     'day-result': `${g.day}일차 낮 · 결과`, night: `${g.day}일차 밤`, morning: `${g.day + 1}일차 아침`, over: '게임 종료',
   }[g.phase] ?? g.phase;
 }
@@ -169,7 +169,7 @@ function viewSetup() {
   <section class="card">
     <h2>역할 구성 <a class="btn sm ghost" href="/settings/">설정에서 바꾸기</a></h2>
     <ul class="comp">${comp}</ul>
-    <p class="muted small">낮 회의 ${formatTime(S.discussionSec * 1000)} · 처형 공개: ${esc(REVEAL_LABELS[S.revealExecution])} · 밤 사망 공개: ${esc(REVEAL_LABELS[S.revealNightDeath])}</p>
+    <p class="muted small">낮 회의 ${formatTime(S.discussionSec * 1000)} · 처형 · 밤 사망 공개: 마피아/시민만</p>
   </section>
   <div class="actions">
     <button type="button" class="btn primary big" data-act="start-assign" ${!names.length || errs.length ? 'disabled' : ''}>역할 배정 시작</button>
@@ -224,7 +224,39 @@ function viewAssignSummary() {
   </section>
   <div class="actions">
     <button type="button" class="btn" data-act="assign-prev">◀ ${esc(E.assignRoles(g).at(-1)?.name ?? '이전')}</button>
-    <button type="button" class="btn primary big" data-act="assign-finish">게임 시작 (1일차 낮)</button>
+    <button type="button" class="btn primary big" data-act="assign-finish">첫 확인 시작</button>
+  </div>`;
+}
+
+// 첫 확인(1일차 낮 전): 마피아(마담 제외)끼리, 연인끼리 서로 얼굴 확인
+function viewIntro() {
+  const plan = g.introPlan ?? [];
+  const S = g.settings.scripts;
+  const D = DEFAULT_SETTINGS.scripts;
+  const i = g.introStep ?? 0;
+  const head = `<div class="step-head"><span class="muted">첫 확인 ${i + 1} / ${plan.length + 1}</span></div>`;
+  const prev = i === 0 ? '' : `<button type="button" class="btn" data-act="intro-prev">◀ ${i === 1 ? '첫 확인 시작' : esc(E.roleById(g, plan[i - 2]).name)}</button>`;
+  if (i === 0) {
+    return `
+    <section class="card announce night">${head}${lines([S.introStart ?? D.introStart])}
+      <p class="muted small">부를 역할: ${plan.map((id) => esc(E.roleById(g, id).name)).join(', ')} · 마담 · 의사는 부르지 않습니다</p></section>
+    <div class="actions"><button type="button" class="btn primary big" data-act="intro-next">역할 호출 시작</button></div>`;
+  }
+  const r = E.roleById(g, plan[i - 1]);
+  const last = i === plan.length;
+  return `
+  <section class="card announce night role-card ${r.team}">
+    ${head}
+    <div class="role-line">${teamBadge(r.team)} <b>${esc(r.name)}</b>
+      <span class="muted">— ${E.members(g, r.id).map((p) => esc(p.name)).join(', ')}</span></div>
+    ${lines([E.fill(S.introCheck ?? D.introCheck, { role: r.name })])}
+    <p class="muted small">끝나면: "${esc(S.nightRoleEnd)}"</p>
+  </section>
+  <div class="actions">
+    ${prev}
+    ${last
+      ? '<button type="button" class="btn primary big" data-act="intro-finish">1일차 낮 시작</button>'
+      : '<button type="button" class="btn primary big" data-act="intro-next">다음 역할</button>'}
   </div>`;
 }
 
@@ -320,12 +352,12 @@ function abilityDesc(r) {
   const uses = n > 0 ? `${n}회` : '횟수 무제한';
   const extra = {
     heal: ['의사 자신도 가능'],
-    seduce: ['마피아 팀은 고를 수 없음'],
+    mafiaKill: ['마피아끼리는 지목 불가', '마담을 모름'],
+    seduce: ['본인 빼고 누구나', '마피아를 고르면 그날 마피아 공격 무효', '조사 · 처형 · 마피아 공격 사망은 시민으로 공개'],
     snipe: [uses, '의사가 살린 마피아는 안 죽음'],
     reveal: ['역할까지 공개', '그날 밤 죽은 사람도 공개', uses],
-    lovers: ['첫날 밤 얼굴 확인만'],
   }[r.ability] ?? [];
-  const label = r.ability === 'lovers' ? '연인 — 한 명이 마피아 공격 · 낮 처형으로 죽으면 같이 죽음' : ABILITIES[r.ability]?.label;
+  const label = r.ability === 'seduce' ? '유혹 — 지목한 사람의 그날 밤 능력 봉인' : ABILITIES[r.ability]?.label;
   return [label, ...extra].filter(Boolean).join(' · ');
 }
 
@@ -363,13 +395,16 @@ function viewNight() {
   if (exhausted) notes.push(`<div class="note warn">능력을 이미 다 썼습니다. 호출만 하고 넘어가세요.</div>`);
   if (blocked && !dead) notes.push(`<div class="note mafia seduced"><span>마담에게 유혹당했습니다. 이번 밤 능력은 무효입니다. 고개를 든 사람에게 안내 화면을 보여 주세요.</span>
     <button type="button" class="btn danger" data-act="seduce-notice">📢 본인에게 안내 화면 보여 주기</button></div>`);
-  if (r.ability === 'investigate' && !noInput && !blocked) notes.push(`<div class="note">경찰이 지목한 사람을 고르면 아래에 결과가 뜹니다. 경찰에게만 엄지로 조용히 알려 주세요 — 👍 마피아 / 👎 아님. 결과는 아침 발표에 나오지 않습니다.</div>`);
+  if (r.ability === 'investigate' && !noInput && !blocked) notes.push(`<div class="note">경찰이 지목한 사람을 고르면 아래에 결과가 뜹니다. 경찰에게만 엄지로 조용히 알려 주세요 — 👍 마피아 / 👎 시민(마담도 시민으로 나옴). 결과는 아침 발표에 나오지 않습니다.</div>`);
   if (left !== null && left !== undefined && !exhausted) notes.push(`<div class="note">남은 사용 횟수: ${left}회</div>`);
 
   let body = '';
   if (!noInput) {
     const opts = E.targetOptions(g, r.id);
-    const chips = opts.map((p) => `<button type="button" class="chip ${chosen === p.id ? 'on' : ''}" data-act="night-pick" data-id="${p.id}">${esc(p.name)}${roleTag(p)}</button>`).join('');
+    const chips = opts.map((p) => {
+      const off = E.targetDisabled(g, r.id, p);
+      return `<button type="button" class="chip ${chosen === p.id ? 'on' : ''}" data-act="night-pick" data-id="${p.id}" ${off ? 'disabled' : ''}>${esc(p.name)}${roleTag(p)}</button>`;
+    }).join('');
     body = `
     <section class="card">
       <h3>지목한 사람을 고르세요</h3>
@@ -397,8 +432,8 @@ function viewNight() {
 function investigateResult(targetId, blocked) {
   const p = E.playerById(g, targetId);
   if (blocked) return `<div class="verdict blocked">유혹당함 — 결과를 알려 주지 마세요<br><small>위의 [안내 화면 보여 주기]로 유혹당한 것을 알려 주세요</small></div>`;
-  const isMafia = E.teamOf(g, p) === 'mafia';
-  return `<div class="verdict ${isMafia ? 'mafia' : 'citizen'}">${esc(p.name)} 님은 ${isMafia ? '마피아입니다 👍' : '마피아가 아닙니다 👎'}</div>`;
+  const isMafia = E.looksMafia(g, p);
+  return `<div class="verdict ${isMafia ? 'mafia' : 'citizen'}">${esc(p.name)} 님은 ${isMafia ? '마피아입니다 👍' : '시민입니다 👎'}</div>`;
 }
 
 function viewNightSummary(head, nav) {
@@ -490,7 +525,7 @@ document.addEventListener('click', async (e) => {
       if (!g) break;
       const inAssign = g.phase === 'assign';
       const opts = [];
-      if (!inAssign) opts.push({ label: '같은 역할로 1일차 낮부터', desc: '배정은 그대로 두고 생존 · 능력 횟수 · 진행 기록만 처음으로', value: 'day1' });
+      if (!inAssign) opts.push({ label: '같은 역할로 첫 확인부터', desc: '배정은 그대로 두고 생존 · 능력 횟수 · 진행 기록만 처음으로 (첫 확인 → 1일차 낮)', value: 'day1' });
       opts.push({ label: '역할 다시 배정', desc: '같은 참가자로 배정부터 새로 (지금 저장된 설정 사용)', value: 'reassign', danger: true });
       const pick = await dlg.choice('어디서부터 다시 할까요? 잘못 골라도 [↶ 이전 단계]로 돌아올 수 있습니다.', '처음부터', opts);
       if (pick === 'day1') {
@@ -547,6 +582,9 @@ document.addEventListener('click', async (e) => {
     case 'assign-prev': touch(() => { g.assignIdx = Math.max(0, g.assignIdx - 1); }); break;
     case 'assign-next': touch(() => { g.assignIdx += 1; }); break;
     case 'assign-finish': commit(() => E.finishAssign(g)); break;
+    case 'intro-prev': touch(() => { g.introStep = Math.max(0, (g.introStep ?? 0) - 1); }); break;
+    case 'intro-next': touch(() => { g.introStep = Math.min(g.introPlan.length, (g.introStep ?? 0) + 1); }); break;
+    case 'intro-finish': commit(() => E.startDay(g)); break;
 
     case 'timer-toggle': touch(() => (g.timer.running ? timerPause() : timerStart())); break;
     case 'timer-add': touch(() => timerAdd(Number(el.dataset.ms))); break;
@@ -568,6 +606,7 @@ document.addEventListener('click', async (e) => {
     case 'night-pick': {
       const step = g.nightPlan[g.nightStep];
       if (E.isBlocked(g, step.roleId)) break;
+      if (id && E.targetDisabled(g, step.roleId, E.playerById(g, id))) break;
       touch(() => {
         g.nightActions[step.roleId] = id;
         // 유혹 대상이 바뀌면 새로 유혹당한 역할의 이전 지목은 지운다(무효 상태에서 남은 값이 되살아나지 않게)

@@ -30,24 +30,49 @@ function write(key, value) {
   }
 }
 
+// 예전 기본 문구를 그대로 쓰고 있으면 새 규칙(마담 · 마피아는 서로 모름) 문구로 바꾼다. 직접 고친 문구는 건드리지 않는다
+const OLD_TEXTS = {
+  mafia: {
+    guide: ['마피아 팀입니다. 밤마다 서로 의논해서 한 명을 공격합니다.\n마담이 누구인지는 서로 압니다.'],
+    nightScript: ['마피아는 고개를 들어 주세요. 서로 얼굴을 확인하고, 오늘 밤 죽일 사람을 한 명 지목해 주세요.'],
+  },
+  madam: { guide: ['마피아 팀입니다. 밤마다 한 명을 유혹해서 그 사람의 그날 밤 능력을 막습니다.'] },
+  lovers: { guide: ['시민 팀입니다. 두 사람은 연인입니다.\n한 명이 마피아에게 죽으면 다른 한 명도 같이 죽습니다.'] },
+};
+function upgradeTexts(r, d) {
+  const old = OLD_TEXTS[r.id];
+  const def = d.roles.find((x) => x.id === r.id);
+  if (!old || !def) return r;
+  const out = { ...r };
+  for (const [k, list] of Object.entries(old)) if (list.includes(r[k])) out[k] = def[k];
+  return out;
+}
+
+const byName = (a, b) => a.localeCompare(b, 'ko');
+
 // 저장된 설정에 빠진 항목이 있으면 기본값으로 채운다(버전이 올라가도 깨지지 않게).
 export function normalizeSettings(s) {
   const d = clone(DEFAULT_SETTINGS);
   if (!s || typeof s !== 'object') return d;
   const out = { ...d, ...s, scripts: { ...d.scripts, ...(s.scripts ?? {}) } };
   out.roles = Array.isArray(s.roles) && s.roles.length ? s.roles : d.roles;
-  out.roles = out.roles.map((r) => ({
+  out.roles = out.roles.map((r) => upgradeTexts(r, d)).map((r) => ({
     ...r,
     count: Math.max(0, Number(r.count) || 0),
     opts: { ...defaultOpts(r.ability), ...(r.opts ?? {}) },
   }));
   out.discussionSec = Math.max(10, Number(out.discussionSec) || d.discussionSec);
-  out.roster = uniqueNames(Array.isArray(s.roster) ? s.roster : []);
+  out.roster = uniqueNames(Array.isArray(s.roster) ? s.roster : []).sort(byName); // 명단은 가나다순
+  // 공개 범위는 "마피아/시민만"으로 고정 — 예전 옵션 값은 버린다
+  delete out.revealExecution;
+  delete out.revealNightDeath;
   out.roles = sortRolesByTeam(out.roles);
   return out;
 }
 
 // 역할 배정 · 밤 호출 순서는 항상 마피아 팀 → 시민 팀. 팀 안에서는 기존 순서를 지킨다.
+export { byName };
+
 export const TEAM_ORDER = ['mafia', 'citizen'];
 export function sortRolesByTeam(roles) {
   return TEAM_ORDER.flatMap((t) => roles.filter((r) => r.team === t))

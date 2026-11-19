@@ -1,6 +1,6 @@
 // 설정 화면. 바꾼 값은 [저장]을 눌러야 브라우저에 저장된다.
 // 화면 구성: [참가자 명단] [진행 규칙] [역할] [멘트] 탭 / 역할 탭 안에서는 팀 선택 → 역할 탭 → 역할 하나의 설정
-import { ABILITIES, ABILITY_OPTS, TEAMS, SCRIPT_LABELS, REVEAL_LABELS, DEFAULT_SETTINGS, defaultOpts } from '/js/defaults.js';
+import { ABILITIES, ABILITY_OPTS, TEAMS, SCRIPT_LABELS, DEFAULT_SETTINGS, defaultOpts } from '/js/defaults.js';
 import { initStore, adoptServer, loadSettings, saveSettings, normalizeSettings, loadGame, splitNames, sortRolesByTeam } from '/js/store.js';
 import { esc } from '/js/util.js';
 
@@ -68,14 +68,10 @@ function viewRules() {
   return `
   <section class="card">
     <h2>진행 규칙</h2>
-    <p class="desc">타이머, 공개 범위, 승리 조건을 정합니다.</p>
+    <p class="desc">타이머와 승리 조건을 정합니다. 처형 · 밤 사망 때는 마피아/시민만 공개합니다(고정).</p>
     <div class="grid">
       <label class="field"><span>낮 회의 시간 (초)</span>
         <input type="number" min="10" step="10" data-path="discussionSec" value="${S.discussionSec}"></label>
-      <label class="field"><span>낮 처형 시 정체 공개</span>
-        <select data-path="revealExecution">${opt(REVEAL_LABELS, S.revealExecution)}</select></label>
-      <label class="field"><span>밤 사망 시 정체 공개</span>
-        <select data-path="revealNightDeath">${opt(REVEAL_LABELS, S.revealNightDeath)}</select></label>
       <label class="field"><span>마피아 승리 조건</span>
         <select data-path="mafiaWinRule">${opt({ gte: '마피아 수가 시민 수와 같아지면', gt: '마피아 수가 시민 수보다 많아지면' }, S.mafiaWinRule)}</select></label>
     </div>
@@ -208,7 +204,7 @@ function addNames(list) {
   if (dup.length) parts.push(`이미 있는 이름이라 넣지 않았습니다: ${dup.join(', ')}`);
   $msg.textContent = parts.join(' ');
   $msg.className = 'roster-msg' + (dup.length ? ' bad' : '');
-  if (added.length) { setDirty(true); renderRoster(); }
+  if (added.length) { S.roster.sort((a, b) => a.localeCompare(b, 'ko')); setDirty(true); renderRoster(); }
 }
 
 function addFromInput() {

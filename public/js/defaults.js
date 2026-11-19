@@ -3,17 +3,17 @@
 export const TEAMS = { mafia: '마피아', citizen: '시민' };
 
 // 능력 유형. 역할은 이 중 하나를 고르고, opts 로 세부 규칙을 정한다.
-//  night: true = 매일 밤 호출 / 'first' = 첫날 밤만 호출(옵션) / false = 호출 없음
+//  night: true = 매일 밤 호출 / false = 밤 호출 없음 (마피아 · 연인은 1일차 낮 전 "첫 확인"에서 서로 확인)
 export const ABILITIES = {
   none:        { label: '능력 없음', night: false },
   mafiaKill:   { label: '처치 — 밤에 한 명 공격', night: true },
-  seduce:      { label: '유혹 — 지목한 사람의 그날 밤 능력 봉인', night: true },
+  seduce:      { label: '유혹 — 지목한 사람의 그날 밤 능력 봉인 (마피아를 고르면 그날 마피아 공격 무효)', night: true },
   heal:        { label: '치료 — 지목한 사람을 마피아 공격에서 살림', night: true },
   investigate: { label: '조사 — 마피아인지 확인', night: true },
   snipe:       { label: '저격 — 마피아면 사살, 시민이면 본인 사망', night: true },
   reveal:      { label: '공개 — 아침에 지목한 사람의 정체 발표', night: true },
   shield:      { label: '방탄 — 마피아 공격을 횟수만큼 막음 (의사가 살리면 안 씀)', night: false },
-  lovers:      { label: '연인 — 마피아 공격 · 낮 처형으로 죽으면 같이 죽음', night: 'first' },
+  lovers:      { label: '연인 — 마피아 공격 · 낮 처형으로 죽으면 같이 죽음', night: false },
   soloWin:     { label: '관종 — 낮 투표로 처형되면 단독 우승', night: false },
 };
 
@@ -40,20 +40,18 @@ export const DEFAULT_SETTINGS = {
   version: 1,
   discussionSec: 180,          // 낮 회의 타이머
   beep: true,                  // 타이머 종료 효과음
-  revealExecution: 'team',     // 낮 처형 시 공개: role | team | none
-  revealNightDeath: 'team',    // 밤 사망 시 공개: role | team | none
   callDeadRoles: true,         // 죽은 역할도 밤에 호출(누가 죽었는지 숨김)
   mafiaWinRule: 'gte',         // gte: 마피아 ≥ 시민이면 마피아 승 / gt: 마피아 > 시민
   roster: [],                  // 참가자 명단(이름). 판마다 참여 · 제외는 콘솔에서 고른다
   roles: [
     role('mafia', '마피아', 'mafia', 4, 'mafiaKill',
-      '마피아 팀입니다. 밤마다 서로 의논해서 한 명을 공격합니다.\n마담이 누구인지는 서로 압니다.',
-      '마피아는 고개를 들어 주세요. 서로 얼굴을 확인하고, 오늘 밤 죽일 사람을 한 명 지목해 주세요.'),
+      '마피아 팀입니다. 밤마다 서로 의논해서 한 명을 공격합니다.\n마담이 누구인지는 모릅니다.',
+      '마피아는 고개를 들어 주세요. 서로 의논해서 오늘 밤 죽일 사람을 한 명 지목해 주세요.'),
     role('madam', '마담', 'mafia', 1, 'seduce',
-      '마피아 팀입니다. 밤마다 한 명을 유혹해서 그 사람의 그날 밤 능력을 막습니다.',
+      '마피아 팀입니다. 밤마다 한 명을 유혹해서 그 사람의 그날 밤 능력을 막습니다.\n마피아가 누구인지는 모릅니다. 마피아를 유혹하면 그날 밤 마피아 공격이 무효가 됩니다.\n경찰 조사 · 처형 · 마피아 공격으로 죽으면 시민으로 나옵니다(스나이퍼에게 죽으면 마피아, 기자에게는 마담).',
       '마담은 고개를 들어 주세요. 오늘 밤 유혹할 사람을 한 명 지목해 주세요.'),
     role('lovers', '연인', 'citizen', 2, 'lovers',
-      '시민 팀입니다. 두 사람은 연인입니다.\n한 명이 마피아에게 죽으면 다른 한 명도 같이 죽습니다.',
+      '시민 팀입니다. 두 사람은 연인입니다.\n한 명이 마피아 공격이나 낮 처형으로 죽으면 다른 한 명도 같이 죽습니다.',
       '연인은 고개를 들어 서로 얼굴을 확인해 주세요.'),
     role('doctor', '의사', 'citizen', 2, 'heal',
       '시민 팀입니다. 의사 두 명이 밤마다 의논해서 한 명을 살립니다.',
@@ -84,6 +82,8 @@ export const DEFAULT_SETTINGS = {
     execution: '투표 결과, {name} 님이 처형되었습니다.',
     noExecution: '투표 결과, 아무도 처형되지 않았습니다.',
     revealLine: '{name} 님의 정체는 [{reveal}] 입니다.',
+    introStart: '게임을 시작하기 전에 서로 확인할 역할을 부르겠습니다. 모두 고개를 숙여 주세요.',
+    introCheck: '{role}, 고개를 들어 서로 얼굴을 확인해 주세요.',
     nightStart: '밤이 되었습니다. 모든 플레이어는 고개를 숙여 주세요.',
     nightRoleEnd: '고개를 숙여 주세요.',
     seducedNotice: '💋\n마담에게 유혹당했습니다\n오늘 밤에는 능력을 쓸 수 없습니다\n고개를 숙여 주세요',
@@ -108,7 +108,9 @@ export const SCRIPT_LABELS = {
   voteStart: '투표 시작',
   execution: '처형',
   noExecution: '처형 없음',
-  revealLine: '정체 공개 문장 (처형·사망 뒤에 붙음)',
+  revealLine: '정체 공개 문장 (처형·사망 뒤에 붙음, 마피아/시민만)',
+  introStart: '첫 확인 시작 (1일차 낮 전)',
+  introCheck: '첫 확인 — 역할 호출 ({role} = 역할 이름)',
   nightStart: '밤 시작',
   nightRoleEnd: '역할 호출 끝',
   seducedNotice: '유혹당한 사람에게 보여 줄 안내 화면 (줄마다 크게 표시)',
@@ -127,4 +129,3 @@ export const SCRIPT_LABELS = {
   winSolo: '관종 단독 우승',
 };
 
-export const REVEAL_LABELS = { role: '역할까지 공개', team: '마피아/시민만 공개', none: '공개 안 함' };

@@ -66,7 +66,7 @@ body[data-theme="night"] { background: #0b0c14; }
 .chip.on small { color: #e6eeff; }
 .chip.taken { opacity: 0.35; }
 .chip.pass { border-style: dashed; }
-.chip:disabled { cursor: not-allowed; }
+.chip:disabled { cursor: not-allowed; opacity: 0.35; }
 
 /* 타이머 */
 .timer-card { text-align: center; }
