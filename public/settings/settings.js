@@ -153,14 +153,14 @@ function roleDetail(r) {
       <label class="field"><span>팀</span><select data-path="${p('team')}" data-rerender>${opt(TEAMS, r.team)}</select></label>
       <label class="field"><span>인원</span>
         <input type="number" min="0" data-path="${p('count')}" value="${r.count}" ${r.fill ? 'disabled' : ''} data-rerender></label>
-      <label class="field"><span>능력</span>
+      <label class="field"><span>능력 <em class="muted">— 게임 규칙</em></span>
         <select data-path="${p('ability')}" data-rerender>${opt(Object.fromEntries(Object.entries(ABILITIES).map(([k, a]) => [k, a.label])), r.ability)}</select></label>
     </div>
     <label class="check mt"><input type="checkbox" data-act="fill" ${r.fill ? 'checked' : ''}> 나머지 인원 자동 배정 — 인원 수를 정하지 않고, 다른 역할을 배정하고 남은 사람이 모두 받음 (전체에서 한 역할만)</label>
     ${opts ? `<div class="opts">${opts}</div>` : ''}
     <div class="grid mt two">
-      <label class="field"><span>역할 가이드 (배정할 때 표시)</span><textarea data-path="${p('guide')}" rows="3">${esc(r.guide)}</textarea></label>
-      <label class="field"><span>밤 호출 멘트 ${wakes ? (wakes === 'first' ? '(첫날 밤만)' : '') : '<em class="muted">(이 능력은 밤에 호출하지 않음)</em>'}</span>
+      <label class="field"><span>가이드 <em class="muted">— 역할 배정 화면에 표시, 역할 받은 사람에게 알려 줄 설명</em></span><textarea data-path="${p('guide')}" rows="3">${esc(r.guide)}</textarea></label>
+      <label class="field"><span>멘트 — 밤 호출 ${wakes ? (wakes === 'first' ? '(첫날 밤만)' : '') : '<em class="muted">(이 능력은 밤에 호출하지 않음)</em>'}</span>
         <textarea data-path="${p('nightScript')}" rows="3">${esc(r.nightScript)}</textarea></label>
     </div>
   </div>`;

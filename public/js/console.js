@@ -105,6 +105,11 @@ setInterval(() => {
 // ── 화면 그리기 ───────────────────────────────────────────────
 const teamBadge = (team) => `<span class="badge ${team}">${esc(TEAMS[team])}</span>`;
 const lines = (arr) => arr.map((l) => `<p>${esc(l)}</p>`).join('');
+// 문구 꼬리표: 능력(규칙 요약, 사회자 참고) · 가이드(역할 받은 사람에게 알려 줄 설명) · 멘트(소리 내어 읽는 문장)
+const LBL = { 능력: 'ability', 가이드: 'guide', 멘트: 'script' };
+const lbl = (k) => `<span class="lbl lbl-${LBL[k]}">${k}</span>`;
+const ment = (arr) => `<div class="lbl-row">${lbl('멘트')}</div>${lines(arr)}`;
+const endLine = (text) => `<p class="muted small">${lbl('멘트')} 끝나면: "${esc(text)}"</p>`;
 
 function render() {
   $phase.textContent = phaseLabel();
@@ -198,8 +203,8 @@ function viewAssign() {
       ${teamBadge(r.team)}
     </div>
     <h2 class="role-title">${esc(r.name)} <span class="cnt">${picked.length} / ${r.count}명</span></h2>
-    <p class="ability muted">${esc(ABILITIES[r.ability]?.label ?? '')}</p>
-    <div class="guide">${lines(String(r.guide ?? '').split('\n'))}</div>
+    <p class="ability muted">${lbl('능력')}${esc(ABILITIES[r.ability]?.label ?? '')}</p>
+    ${r.guide ? `<div class="guide"><div class="lbl-row">${lbl('가이드')}</div>${lines(String(r.guide).split('\n'))}</div>` : ''}
   </section>
   <section class="card">
     <h3>[${esc(r.name)}] 역할을 받을 사람을 ${r.count}명 고르세요</h3>
@@ -238,7 +243,7 @@ function viewIntro() {
   const prev = i === 0 ? '' : `<button type="button" class="btn" data-act="intro-prev">◀ ${i === 1 ? '첫 확인 시작' : esc(E.roleById(g, plan[i - 2]).name)}</button>`;
   if (i === 0) {
     return `
-    <section class="card announce night">${head}${lines([S.introStart ?? D.introStart])}
+    <section class="card announce night">${head}${ment([S.introStart ?? D.introStart])}
       <p class="muted small">부를 역할: ${plan.map((id) => esc(E.roleById(g, id).name)).join(', ')} · 마담 · 의사는 부르지 않습니다</p></section>
     <div class="actions"><button type="button" class="btn primary big" data-act="intro-next">역할 호출 시작</button></div>`;
   }
@@ -249,8 +254,8 @@ function viewIntro() {
     ${head}
     <div class="role-line">${teamBadge(r.team)} <b>${esc(r.name)}</b>
       <span class="muted">— ${E.members(g, r.id).map((p) => esc(p.name)).join(', ')}</span></div>
-    ${lines([E.fill(S.introCheck ?? D.introCheck, { role: r.name })])}
-    <p class="muted small">끝나면: "${esc(S.nightRoleEnd)}"</p>
+    ${ment([E.fill(S.introCheck ?? D.introCheck, { role: r.name })])}
+    ${endLine(S.nightRoleEnd)}
   </section>
   <div class="actions">
     ${prev}
@@ -273,7 +278,7 @@ function viewDayTalk() {
   const ms = remain();
   return `
   ${assignDoneCard()}
-  <section class="card announce day">${lines(g.announce)}</section>
+  <section class="card announce day">${ment(g.announce)}</section>
   <section class="card timer-card">
     <div id="timer" class="timer ${ms === 0 ? 'done' : ''}">${formatTime(ms)}</div>
     <div class="timer-btns">
@@ -292,7 +297,7 @@ function viewDayTalk() {
 function viewDayVote() {
   const btns = E.alive(g).map((p) => `<button type="button" class="chip" data-act="execute" data-id="${p.id}">${esc(p.name)}${roleTag(p)}</button>`).join('');
   return `
-  <section class="card announce day">${lines([g.settings.scripts.voteStart])}</section>
+  <section class="card announce day">${ment([g.settings.scripts.voteStart])}</section>
   <section class="card">
     <h3>투표로 지목된 사람을 고르세요</h3>
     <div class="chips">${btns}</div>
@@ -313,8 +318,7 @@ function viewResult() {
       : `<button type="button" class="btn primary big" data-act="to-night">밤으로</button>`;
   return `
   <section class="card announce ${g.winner ? 'over' : 'day'}">
-    <p class="muted small">아래 문장을 읽어 주세요</p>
-    ${lines(g.announce)}
+    ${ment(g.announce)}
   </section>
   ${isMorning && g.report?.length ? `
   <details class="card host-only" ${hideRoles ? '' : 'open'}>
@@ -375,7 +379,7 @@ function viewNight() {
   const head = `<div class="step-head"><span class="muted">밤 진행 ${g.nightStep + 1} / ${total}</span></div>`;
 
   if (step.kind === 'intro') {
-    return `<section class="card announce night">${head}${lines([g.settings.scripts.nightStart])}</section>${nav('역할 호출 시작')}`;
+    return `<section class="card announce night">${head}${ment([g.settings.scripts.nightStart])}</section>${nav('역할 호출 시작')}`;
   }
   if (step.kind === 'summary') return viewNightSummary(head, nav);
 
@@ -420,9 +424,9 @@ function viewNight() {
     ${head}
     <div class="role-line">${teamBadge(r.team)} <b>${esc(r.name)}</b>
       <span class="muted">— ${all.map((p) => `${esc(p.name)}${p.alive ? '' : '(사망)'}`).join(', ')}</span></div>
-    <p class="role-desc">${esc(abilityDesc(r))}</p>
-    ${lines([r.nightScript || `${r.name}은(는) 고개를 들어 주세요.`])}
-    <p class="muted small">끝나면: "${esc(g.settings.scripts.nightRoleEnd)}"</p>
+    <p class="role-desc">${lbl('능력')}${esc(abilityDesc(r))}</p>
+    ${ment([r.nightScript || `${r.name}은(는) 고개를 들어 주세요.`])}
+    ${endLine(g.settings.scripts.nightRoleEnd)}
   </section>
   ${notes.join('')}
   ${body}
@@ -460,7 +464,7 @@ function viewOver() {
     return `<tr class="${p.alive ? '' : 'dead'}"><td>${esc(p.name)}</td><td>${teamBadge(r.team)} ${esc(r.name)}</td><td>${p.alive ? '생존' : `${p.deathDay}일차 ${esc(E.CAUSE_LABEL[p.deathCause] ?? '')}`}</td></tr>`;
   }).join('');
   return `
-  <section class="card announce over">${lines([g.winner?.line ?? '게임이 끝났습니다.'])}</section>
+  <section class="card announce over">${ment([g.winner?.line ?? '게임이 끝났습니다.'])}</section>
   <section class="card"><h2>전체 역할 공개</h2><table class="tbl">${rows}</table></section>
   <div class="actions">
     <button type="button" class="btn primary big" data-act="replay">같은 멤버로 새 게임</button>

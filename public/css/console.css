@@ -143,3 +143,13 @@ body[data-theme="night"] { background: #0b0c14; }
 .seduce-notice p { margin: 0; font-size: clamp(28px, 6vw, 64px); font-weight: 800; line-height: 1.25; }
 .seduce-notice p:first-child { font-size: clamp(56px, 14vw, 140px); }
 .seduce-notice small { position: absolute; bottom: 24px; font-size: 14px; color: #777; }
+
+/* 문구 꼬리표: 능력 · 가이드 · 멘트 */
+.lbl {
+  display: inline-block; margin-right: 6px; padding: 3px 6px; border-radius: 4px;
+  font-size: 11px; font-weight: 700; line-height: 1; vertical-align: 2px; letter-spacing: 0;
+}
+.lbl-ability { background: rgba(108, 114, 217, 0.22); color: #aab0ff; }
+.lbl-guide { background: rgba(70, 167, 88, 0.22); color: #84d694; }
+.lbl-script { background: rgba(245, 193, 74, 0.2); color: #f5c14a; }
+.lbl-row { margin: 2px 0 4px; line-height: 1; }
