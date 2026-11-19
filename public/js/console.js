@@ -397,8 +397,8 @@ function viewNight() {
   const notes = [];
   if (dead) notes.push(`<div class="note warn">이 역할은 모두 죽었습니다. 다른 역할처럼 멘트를 읽고 잠시 기다린 뒤 넘어가세요.</div>`);
   if (exhausted) notes.push(`<div class="note warn">능력을 이미 다 썼습니다. 호출만 하고 넘어가세요.</div>`);
-  if (blocked && !dead) notes.push(`<div class="note mafia seduced"><span>마담에게 유혹당했습니다. 이번 밤 능력은 무효입니다. 고개를 든 사람에게 안내 화면을 보여 주세요.</span>
-    <button type="button" class="btn danger" data-act="seduce-notice">📢 본인에게 안내 화면 보여 주기</button></div>`);
+  if (blocked && !dead) notes.push(`<div class="note mafia seduced"><span>마담에게 유혹당했습니다. 이번 밤 능력은 무효입니다. [${esc(r.name)}에게 보여 줄 화면]을 눌러 보여 주세요.</span>
+    <button type="button" class="btn danger" data-act="seduce-notice">📢 ${esc(r.name)}에게 보여 줄 화면</button></div>`);
   if (r.ability === 'investigate' && !noInput && !blocked) notes.push(`<div class="note">경찰이 지목한 사람을 고르면 아래에 결과가 뜹니다. 경찰에게만 엄지로 조용히 알려 주세요 — 👍 마피아 / 👎 시민(마담도 시민으로 나옴). 결과는 아침 발표에 나오지 않습니다.</div>`);
   if (left !== null && left !== undefined && !exhausted) notes.push(`<div class="note">남은 사용 횟수: ${left}회</div>`);
 
@@ -435,7 +435,7 @@ function viewNight() {
 
 function investigateResult(targetId, blocked) {
   const p = E.playerById(g, targetId);
-  if (blocked) return `<div class="verdict blocked">유혹당함 — 결과를 알려 주지 마세요<br><small>위의 [안내 화면 보여 주기]로 유혹당한 것을 알려 주세요</small></div>`;
+  if (blocked) return `<div class="verdict blocked">유혹당함 — 결과를 알려 주지 마세요<br><small>위의 [보여 줄 화면]으로 유혹당한 것을 알려 주세요</small></div>`;
   const isMafia = E.looksMafia(g, p);
   return `<div class="verdict ${isMafia ? 'mafia' : 'citizen'}">${esc(p.name)} 님은 ${isMafia ? '마피아입니다 👍' : '시민입니다 👎'}</div>`;
 }
