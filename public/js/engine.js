@@ -272,8 +272,20 @@ export function resolveNight(g) {
   const deaths = [];
   const byAb = (ab) => S.roles.filter((r) => r.ability === ab && aliveMembers(g, r.id).length);
 
+  // 사회자용 기록은 "역할(이름)" 으로 적는다. 행동한 쪽 이름은 밤이 시작될 때 살아 있던 사람 기준
+  const startAlive = new Set(g.players.filter((p) => p.alive).map((p) => p.id));
+  const who = (p) => `${roleOf(g, p)?.name ?? '?'}(${p.name})`;
+  const whoId = (id) => who(playerById(g, id));
+  const actor = (r) => {
+    const names = members(g, r.id).filter((p) => startAlive.has(p.id)).map((p) => p.name);
+    return names.length ? `${r.name}(${names.join(', ')})` : r.name;
+  };
+
   const sid = seducedId(g);
-  if (sid) report.push(`마담 유혹: ${playerById(g, sid).name}`);
+  if (sid) {
+    const madam = S.roles.find((r) => r.ability === 'seduce' && act[r.id] === sid);
+    report.push(`${madam ? actor(madam) : '마담'} 유혹 → ${whoId(sid)}`);
+  }
 
   // 치료
   const healed = new Set();
@@ -281,9 +293,9 @@ export function resolveNight(g) {
     const t = act[r.id];
     g.roleState[r.id].lastTarget = t ?? null;
     if (!t) continue;
-    if (isBlocked(g, r.id)) { report.push(`${r.name}: 유혹당해 치료 무효`); continue; }
+    if (isBlocked(g, r.id)) { report.push(`${actor(r)} 치료 → ${whoId(t)}: 유혹당해 무효`); continue; }
     healed.add(t);
-    report.push(`${r.name} 치료: ${playerById(g, t).name}`);
+    report.push(`${actor(r)} 치료 → ${whoId(t)}`);
   }
 
   // 마피아 공격
@@ -292,24 +304,24 @@ export function resolveNight(g) {
     if (isBlocked(g, r.id)) {
       const line = pickVariant(S.scripts.mafiaSeduced ?? DEFAULT_SCRIPTS.mafiaSeduced);
       if (line) lines.push(line);
-      report.push(`${r.name}: 마담에게 유혹당해 공격 무효`);
+      report.push(t ? `${actor(r)} 공격 → ${whoId(t)}: 마담에게 유혹당해 무효` : `${actor(r)}: 마담에게 유혹당해 공격 무효`);
       continue;
     }
-    if (!t) { report.push(`${r.name}: 공격 안 함`); continue; }
+    if (!t) { report.push(`${actor(r)}: 공격 안 함`); continue; }
     const p = playerById(g, t);
     const pr = roleOf(g, p);
     const hasShield = pr.ability === 'shield' && p.shield > 0;
     const isHealed = healed.has(t);
     if (isHealed) { // 의사가 살렸으면 방탄은 쓰지 않는다
       lines.push(fill(S.scripts.nightSaved, { name: p.name }));
-      report.push(`${r.name} 공격 → ${p.name}: 의사가 살림`);
+      report.push(`${actor(r)} 공격 → ${who(p)}: 의사가 살림`);
     } else if (hasShield) {
       p.shield -= 1;
       lines.push(fill(S.scripts.veteranBlock, { name: p.name }));
-      report.push(`${r.name} 공격 → ${p.name}: 방탄으로 막음 (남은 방탄 ${p.shield})`);
+      report.push(`${actor(r)} 공격 → ${who(p)}: 방탄으로 막음 (남은 방탄 ${p.shield})`);
     } else {
       deaths.push({ p, cause: 'mafia' });
-      report.push(`${r.name} 공격 → ${p.name}: 사망`);
+      report.push(`${actor(r)} 공격 → ${who(p)}: 사망`);
     }
   }
 
@@ -317,11 +329,11 @@ export function resolveNight(g) {
   for (const r of byAb('snipe')) {
     const t = act[r.id];
     if (!t) continue;
-    if (isBlocked(g, r.id)) { report.push(`${r.name}: 유혹당해 저격 무효 (횟수 차감 안 함)`); continue; }
+    if (isBlocked(g, r.id)) { report.push(`${actor(r)} 저격 → ${whoId(t)}: 유혹당해 무효 (횟수 차감 안 함)`); continue; }
     // 행동은 받지만, 같은 밤 마피아에게 죽었으면(치료 · 방탄 없이) 저격은 무효 — 오발 사망도 없다
     const shooters = aliveMembers(g, r.id);
     if (shooters.every((s) => deaths.some((d) => d.p === s && d.cause === 'mafia'))) {
-      report.push(`${r.name} 저격 → ${playerById(g, t).name}: 마피아에게 당해 저격 무효`);
+      report.push(`${actor(r)} 저격 → ${whoId(t)}: 마피아에게 당해 무효`);
       continue;
     }
     const st = g.roleState[r.id];
@@ -330,15 +342,15 @@ export function resolveNight(g) {
     if (teamOf(g, p) === 'mafia') {
       if (healed.has(t)) {
         // 살아남았으니 아무것도 발표하지 않는다 — 발표하면 마피아인 것이 드러난다
-        report.push(`${r.name} 저격 → ${p.name}(마피아): 의사가 살림 (발표 안 함)`);
+        report.push(`${actor(r)} 저격 → ${who(p)}: 의사가 살림 (발표 안 함)`);
       } else {
         if (!deaths.some((d) => d.p === p)) deaths.push({ p, cause: 'snipe' });
-        report.push(`${r.name} 저격 → ${p.name}(마피아): 사살`);
+        report.push(`${actor(r)} 저격 → ${who(p)}: 사살`);
       }
     } else {
       const shooter = aliveMembers(g, r.id)[0];
       if (!deaths.some((d) => d.p === shooter)) deaths.push({ p: shooter, cause: 'snipeFail' });
-      report.push(`${r.name} 저격 → ${p.name}(시민): 오발, ${shooter.name} 사망`);
+      report.push(`${actor(r)} 저격 → ${who(p)}: 오발, ${who(shooter)} 사망`);
     }
   }
 
@@ -355,7 +367,7 @@ export function resolveNight(g) {
   }
   for (const s of loverSaved) {
     lines.push(fill(S.scripts.loverSaved, { name: s.p.name, lover: s.lover.name }));
-    report.push(`연인 ${s.p.name}: 따라 죽으려 했으나 의사가 살림`);
+    report.push(`${who(s.p)}: ${who(s.lover)}을(를) 따라 죽으려 했으나 의사가 살림`);
   }
 
   // 기자 공개 (기자는 밤이 시작될 때 살아 있었어야 한다)
@@ -365,21 +377,21 @@ export function resolveNight(g) {
     const reporterAlive = aliveMembers(g, r.id).length > 0;
     const diedTonight = deaths.some((d) => d.p.roleId === r.id);
     if (!reporterAlive && !diedTonight) { // 그날 밤 죽은 기자는 공개된다
-      report.push(`${r.name}: 그날 밤 사망해 공개 안 함`);
+      report.push(`${actor(r)} 공개 → ${whoId(t)}: 그날 밤 이전에 사망해 공개 안 함`);
       continue;
     }
-    if (isBlockedAtNight(g, r.id, sid)) { report.push(`${r.name}: 유혹당해 공개 무효 (횟수 차감 안 함)`); continue; }
+    if (isBlockedAtNight(g, r.id, sid)) { report.push(`${actor(r)} 공개 → ${whoId(t)}: 유혹당해 무효 (횟수 차감 안 함)`); continue; }
     const st = g.roleState[r.id];
     if (st.usesLeft !== null) st.usesLeft = Math.max(0, st.usesLeft - 1);
     const p = playerById(g, t);
     lines.push(fill(S.scripts.reporter, { name: p.name, reveal: revealText(g, p, 'role') }));
-    report.push(`${r.name} 공개: ${p.name}`);
+    report.push(`${actor(r)} 공개 → ${who(p)}`);
   }
 
   // 경찰 조사는 진행 중에 바로 보여 줬으므로 기록만
   for (const r of S.roles.filter((x) => x.ability === 'investigate')) {
     const t = act[r.id];
-    if (t) report.push(`${r.name} 조사: ${playerById(g, t).name} → ${looksMafia(g, playerById(g, t)) ? '마피아' : '시민'}${isBlockedAtNight(g, r.id, sid) ? ' (유혹당해 결과 안 알려 줌)' : ''}`);
+    if (t) report.push(`${actor(r)} 조사 → ${whoId(t)}: ${isBlockedAtNight(g, r.id, sid) ? '유혹당해 결과 안 알려 줌' : `${looksMafia(g, playerById(g, t)) ? '마피아로' : '시민으로'} 알려 줌`}`);
   }
 
   // 죽음 · 치료 · 방탄 · 기자 공개 등 무슨 일이든 있었으면 "사건이 벌어졌습니다"를 먼저 읽는다
