@@ -89,7 +89,7 @@ function viewScripts() {
   return `
   <section class="card">
     <h2>사회자 멘트</h2>
-    <p class="desc hint">바꿔 넣는 자리: <code>{name}</code> 이름 · <code>{reveal}</code> 공개되는 정체 · <code>{day}</code> 일차. 줄바꿈도 그대로 표시됩니다.<br>역할별 밤 호출 멘트는 [역할] 탭에서 정합니다.</p>
+    <p class="desc hint">바꿔 넣는 자리: <code>{name}</code> 이름 · <code>{reveal}</code> 기자가 공개하는 역할 · <code>{day}</code> 일차. 줄바꿈도 그대로 표시됩니다.<br>역할별 밤 호출 멘트는 [역할] 탭에서 정합니다.</p>
     <div class="scripts">
       ${Object.keys(DEFAULT_SETTINGS.scripts).map((k) => `
       <label class="field script-row"><span>${esc(SCRIPT_LABELS[k] ?? k)}</span>

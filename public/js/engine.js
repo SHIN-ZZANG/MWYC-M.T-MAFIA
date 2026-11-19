@@ -144,7 +144,11 @@ function chainLovers(g, deaths, healed = new Set(), saved = []) {
 // 마피아 공격으로 죽은 사람은 정체를 밝히지 않는다(마담이 마피아에게 죽어도 드러나지 않게)
 function revealSuffix(g, p, cause) {
   if (cause === 'mafia') return [];
-  return [fill(g.settings.scripts.revealLine, { name: p.name, reveal: revealText(g, p, 'team') })];
+  const S = g.settings.scripts;
+  const tpl = teamOf(g, p) === 'mafia'
+    ? (S.revealMafia ?? '{name} 님은 마피아였습니다.')
+    : (S.revealCitizen ?? '{name} 님은 선량한 시민이었습니다.');
+  return [fill(tpl, { name: p.name })];
 }
 
 // 낮 투표 결과. playerId 가 null 이면 처형 없음.

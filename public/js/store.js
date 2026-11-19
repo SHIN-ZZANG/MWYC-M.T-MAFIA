@@ -58,6 +58,7 @@ export function normalizeSettings(s) {
   const d = clone(DEFAULT_SETTINGS);
   if (!s || typeof s !== 'object') return d;
   const out = { ...d, ...s, scripts: { ...d.scripts, ...(s.scripts ?? {}) } };
+  delete out.scripts.revealLine; // 정체 문장은 시민 · 마피아 두 가지로 나뉘었다(revealCitizen · revealMafia)
   out.roles = Array.isArray(s.roles) && s.roles.length ? s.roles : d.roles;
   // 예전 기본 멘트를 그대로 쓰고 있으면 새 멘트로
   if (out.scripts.nightKill === '밤사이 {name} 님이 마피아에게 살해당했습니다.') out.scripts.nightKill = d.scripts.nightKill;
