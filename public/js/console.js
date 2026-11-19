@@ -358,7 +358,7 @@ function abilityDesc(r) {
     heal: ['의사 자신도 가능'],
     mafiaKill: ['마피아끼리는 지목 불가', '마담을 모름'],
     seduce: ['본인 빼고 누구나', '마피아를 고르면 그날 마피아 공격 무효', '경찰 조사에는 시민'],
-    snipe: [uses, '의사가 살린 마피아는 안 죽음'],
+    snipe: [uses, '의사가 살린 마피아는 안 죽음', '그 밤 마피아에게 당하면 저격 무효'],
     reveal: ['역할까지 공개', '그날 밤 죽은 사람도 공개', uses],
   }[r.ability] ?? [];
   const label = r.ability === 'seduce' ? '유혹 — 지목한 사람의 그날 밤 능력 봉인' : ABILITIES[r.ability]?.label;

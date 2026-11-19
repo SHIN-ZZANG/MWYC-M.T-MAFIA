@@ -305,6 +305,12 @@ export function resolveNight(g) {
     const t = act[r.id];
     if (!t) continue;
     if (isBlocked(g, r.id)) { report.push(`${r.name}: 유혹당해 저격 무효 (횟수 차감 안 함)`); continue; }
+    // 행동은 받지만, 같은 밤 마피아에게 죽었으면(치료 · 방탄 없이) 저격은 무효 — 오발 사망도 없다
+    const shooters = aliveMembers(g, r.id);
+    if (shooters.every((s) => deaths.some((d) => d.p === s && d.cause === 'mafia'))) {
+      report.push(`${r.name} 저격 → ${playerById(g, t).name}: 마피아에게 당해 저격 무효`);
+      continue;
+    }
     const st = g.roleState[r.id];
     if (st.usesLeft !== null) st.usesLeft = Math.max(0, st.usesLeft - 1);
     const p = playerById(g, t);
