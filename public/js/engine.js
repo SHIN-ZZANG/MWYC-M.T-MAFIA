@@ -264,9 +264,29 @@ export function targetDisabled(g, roleId, p) {
   return roleById(g, roleId).ability === 'mafiaKill' && p.roleId === roleId;
 }
 
+// 밤 지목을 진행 기록에 실시간으로 남긴다(kind 'pick'). 지목을 바꾸면 줄을 쌓지 않고 다시 쓴다 —
+// 이번 밤의 pick 줄을 모두 지우고 호출 순서대로 다시 붙인다(유혹 대상이 바뀌면 다른 역할의 유혹 표시도 바뀌므로).
+// 밤 결과를 처리하면 밤 상세 결과가 같은 내용을 남기므로 pick 줄은 지운다.
+export function syncPickLog(g) {
+  g.log = g.log.filter((l) => l.kind !== 'pick');
+  const sid = seducedId(g);
+  for (const st of g.nightPlan) {
+    if (st.kind !== 'role' || !(st.roleId in g.nightActions)) continue;
+    const r = roleById(g, st.roleId);
+    const names = aliveMembers(g, r.id).map((p) => p.name);
+    const actor = names.length ? `${r.name}(${names.join(', ')})` : r.name;
+    const t = g.nightActions[r.id];
+    const tp = t ? playerById(g, t) : null;
+    const target = tp ? `지목 → ${roleOf(g, tp)?.name ?? '?'}(${tp.name})` : '지목 안 함';
+    const blocked = r.ability !== 'seduce' && sid && aliveMembers(g, r.id).some((p) => p.id === sid);
+    addLog(g, `🌙 ${actor} ${target}${blocked ? ' (유혹당함 — 무효)' : ''}`, 'pick');
+  }
+}
+
 export function resolveNight(g) {
   const S = g.settings;
   const act = g.nightActions;
+  g.log = g.log.filter((l) => l.kind !== 'pick');
   const lines = [S.scripts.morning];
   const report = [];
   const deaths = [];

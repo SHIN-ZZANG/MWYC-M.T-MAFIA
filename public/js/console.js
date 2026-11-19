@@ -519,7 +519,9 @@ function viewSide() {
     <h3>참가자 <span class="muted small">생존 ${al.length}명${hideRoles ? '' : ` · 마피아 ${mafia} / 시민 ${al.length - mafia}`}</span></h3>
     <ul class="plist">${plist}</ul>
   </section>
-  <section class="card"><h3>진행 기록</h3><ul class="log">${logs}</ul></section>`;
+  <section class="card"><h3>진행 기록</h3>${hideRoles
+    ? '<p class="muted small">역할 가리기 중 — 기록에 역할 · 지목이 있어 숨겼습니다.</p>'
+    : `<ul class="log">${logs}</ul>`}</section>`;
 }
 
 // ── 이벤트 ────────────────────────────────────────────────────
@@ -627,6 +629,7 @@ document.addEventListener('click', async (e) => {
       if (id && E.targetDisabled(g, step.roleId, E.playerById(g, id))) break;
       touch(() => {
         g.nightActions[step.roleId] = id;
+        E.syncPickLog(g);
       });
       if (id && E.roleById(g, step.roleId).ability === 'investigate') showPoliceResult(id);
       break;

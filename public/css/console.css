@@ -114,6 +114,7 @@ body[data-theme="night"] { background: #0b0c14; }
 .log li.death { color: #ff9c9f; }
 .log li.win { color: var(--warn); font-weight: 700; }
 .log li.night { color: #b7bbf0; }
+.log li.pick { color: #9fd3ff; }
 
 /* 이번 판 참가자 선택 */
 .roster { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
