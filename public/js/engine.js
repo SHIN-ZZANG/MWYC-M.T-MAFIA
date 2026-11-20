@@ -328,6 +328,14 @@ export function resolveNight(g) {
     report.push(`${actor(r)} 치료 → ${whoId(t)}`);
   }
 
+  // 방탄: 유혹당한 밤에는 작동하지 않는다(방탄 횟수는 그대로). 방탄이 필요했는데 유혹 때문에 못 쓴 사람은 기억해 두고 위트 멘트를 읽는다
+  const shieldOff = new Set();
+  const shieldUp = (p, pr) => {
+    if (pr.ability !== 'shield' || p.shield <= 0) return false;
+    if (isBlocked(g, pr.id)) { shieldOff.add(p.id); return false; }
+    return true;
+  };
+
   // 마피아 공격
   for (const r of byAb('mafiaKill')) {
     const t = act[r.id];
@@ -339,7 +347,7 @@ export function resolveNight(g) {
     if (!t) { report.push(`${actor(r)}: 공격 안 함`); continue; }
     const p = playerById(g, t);
     const pr = roleOf(g, p);
-    const hasShield = pr.ability === 'shield' && p.shield > 0;
+    const hasShield = shieldUp(p, pr);
     const isHealed = healed.has(t);
     if (isHealed) { // 의사가 살렸으면 방탄은 쓰지 않는다
       lines.push(fill(S.scripts.nightSaved, { name: p.name }));
@@ -350,7 +358,7 @@ export function resolveNight(g) {
       report.push(`${actor(r)} 공격 → ${who(p)}: 방탄으로 막음 (남은 방탄 ${p.shield})`);
     } else {
       deaths.push({ p, cause: 'mafia' });
-      report.push(`${actor(r)} 공격 → ${who(p)}: 사망`);
+      report.push(`${actor(r)} 공격 → ${who(p)}: 사망${shieldOff.has(p.id) ? ' (유혹당해 방탄 무효)' : ''}`);
     }
   }
 
@@ -382,7 +390,7 @@ export function resolveNight(g) {
       // 마피아든 시민이든 같은 문구로 발표한다 — 정체가 드러나지 않게. 의사가 살렸으면 방탄은 쓰지 않는다
       lines.push(fill(S.scripts.snipeSaved ?? DEFAULT_SCRIPTS.snipeSaved, { name: p.name }));
       report.push(`${actor(r)} 저격 → ${who(p)}: 의사가 살림`);
-    } else if (pr.ability === 'shield' && p.shield > 0) {
+    } else if (shieldUp(p, pr)) {
       p.shield -= 1;
       lines.push(fill(S.scripts.snipeBlock ?? DEFAULT_SCRIPTS.snipeBlock, { name: p.name }));
       report.push(`${actor(r)} 저격 → ${who(p)}: 방탄으로 막음 (남은 방탄 ${p.shield})`);
@@ -394,7 +402,7 @@ export function resolveNight(g) {
       deaths.push({ p, cause: 'snipe' });
       const shooter = aliveMembers(g, r.id)[0];
       if (!deaths.some((d) => d.p === shooter)) snipeSuicides.push({ p: shooter, cause: 'snipeFail' });
-      report.push(`${actor(r)} 저격 → ${who(p)}: 시민 사망, ${who(shooter)} 자결`);
+      report.push(`${actor(r)} 저격 → ${who(p)}: 시민 사망${shieldOff.has(p.id) ? ' (유혹당해 방탄 무효)' : ''}, ${who(shooter)} 자결`);
     }
   }
 
@@ -408,6 +416,8 @@ export function resolveNight(g) {
     kill(g, d.p, d.cause);
     lines.push(fill(S.scripts[causeTpl[d.cause]], { name: d.p.name }));
     lines.push(...revealSuffix(g, d.p, d.cause));
+    // 유혹당해 방탄을 못 쓰고 죽은 퇴역군인: 사망 발표 바로 뒤에 위트 멘트
+    if (shieldOff.has(d.p.id)) { seducedLine('veteranSeduced'); shieldOff.delete(d.p.id); }
     addLog(g, `밤 사망: ${d.p.name} (${roleOf(g, d.p).name}, ${CAUSE_LABEL[d.cause]})`, 'death');
   }
   for (const s of loverSaved) {

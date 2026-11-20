@@ -12,7 +12,7 @@ export const ABILITIES = {
   investigate: { label: '조사 — 마피아인지 확인', night: true },
   snipe:       { label: '저격 — 마피아면 사살, 시민이면 그 시민과 본인 모두 사망', night: true },
   reveal:      { label: '공개 — 아침에 지목한 사람의 정체 발표', night: true },
-  shield:      { label: '방탄 — 마피아 공격 · 저격을 횟수만큼 막음 (의사가 살리면 안 씀)', night: false },
+  shield:      { label: '방탄 — 마피아 공격 · 저격을 횟수만큼 막음 (의사가 살리면 안 씀, 마담에게 유혹당한 밤에는 무효)', night: false },
   lovers:      { label: '연인 — 마피아 공격 · 저격 · 낮 처형으로 죽으면 같이 죽음', night: false },
   soloWin:     { label: '관종 — 낮 투표로 처형되면 단독 우승', night: false },
 };
@@ -20,7 +20,7 @@ export const ABILITIES = {
 // 능력별 세부 규칙 기본값과 설정 화면 표시용 정의
 // 능력별 숫자 설정. 나머지 규칙은 고정이다(engine.js · README 의 "역할 규칙" 참고)
 export const ABILITY_OPTS = {
-  snipe: [{ key: 'uses', type: 'num', label: '사용 횟수 (0 = 무제한)', def: 0 }],
+  snipe: [{ key: 'uses', type: 'num', label: '사용 횟수 (0 = 무제한)', def: 1 }],
   reveal: [{ key: 'uses', type: 'num', label: '사용 횟수 (0 = 무제한)', def: 1 }],
   shield: [{ key: 'uses', type: 'num', label: '방어 횟수', def: 1 }],
 };
@@ -66,7 +66,7 @@ export const DEFAULT_SETTINGS = {
       '시민 팀입니다. 게임 중 한 번, 밤에 지목한 사람의 정체를 다음 날 아침 익명으로 공개합니다.',
       '기자는 고개를 들어 주세요. 정체를 공개할 사람이 있으면 지목하고, 아직 쓰지 않으려면 고개를 저어 주세요.'),
     role('veteran', '퇴역군인(만석이)', 'citizen', 1, 'shield',
-      '시민 팀입니다. 방탄유리가 있어서 마피아의 공격이나 저격을 한 번 막습니다.',
+      '시민 팀입니다. 방탄유리가 있어서 마피아의 공격이나 저격을 한 번 막습니다.\n마담에게 유혹당한 밤에는 방탄유리가 작동하지 않습니다.',
       ''),
     role('attention', '관종', 'citizen', 1, 'soloWin',
       '시민 팀으로 집계되지만, 낮 투표로 처형되면 혼자 우승합니다.',
@@ -97,6 +97,7 @@ export const DEFAULT_SETTINGS = {
     doctorSeduced: '의사가 마담의 매력에 빠져 왕진을 가지 못했습니다.\n\n마담이 의사를 유혹하여 치료가 이루어지지 않았습니다.',
     sniperSeduced: '스나이퍼가 마담에게 한눈을 팔아 방아쇠를 당기지 못했습니다.\n\n마담이 스나이퍼를 유혹하여 총성이 울리지 않았습니다.',
     reporterSeduced: '기자가 마담과 데이트하느라 마감을 놓쳐 기사가 나가지 않았습니다.\n\n마담이 기자를 유혹하여 특종이 실리지 않았습니다.',
+    veteranSeduced: '만석씨~?\n마담에게 정신이 팔려 방탄유리를 챙기지 못했습니다.\n\n마담이 퇴역군인을 유혹하여 방탄유리가 작동하지 않았습니다.',
     policeSeduced: '경찰이 마담에게 마음을 빼앗겨 수사를 하지 못했습니다.\n\n마담이 경찰을 유혹하여 수사가 이루어지지 않았습니다.',
     veteranBlock: '밤사이 {name} 님이 마피아에게 공격당했습니다.\n만석씨~?\n"이거 방탄유리야 ㄱㅅㄲ야!"\n방탄유리가 공격을 막아냈습니다.',
     snipeKill: '밤사이 총성이 울렸습니다. {name} 님이 저격당해 사망했습니다.',
@@ -135,6 +136,7 @@ export const SCRIPT_LABELS = {
   sniperSeduced: '마담이 스나이퍼를 유혹했을 때 (빈 줄로 나눠 여러 개면 무작위)',
   reporterSeduced: '마담이 기자를 유혹했을 때 (빈 줄로 나눠 여러 개면 무작위)',
   policeSeduced: '마담이 경찰을 유혹했을 때 (빈 줄로 나눠 여러 개면 무작위)',
+  veteranSeduced: '마담에게 유혹당한 퇴역군인이 방탄 없이 공격당해 죽었을 때 (사망 발표 뒤에 붙음, 빈 줄로 나눠 여러 개면 무작위)',
   veteranBlock: '퇴역군인 방어',
   snipeKill: '저격 성공',
   snipeFail: '시민을 쏜 스나이퍼 자결 (저격당한 시민 발표 뒤에 붙음)',
