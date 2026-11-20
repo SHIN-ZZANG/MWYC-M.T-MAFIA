@@ -40,7 +40,17 @@ const OLD_TEXTS = {
     '마피아 팀입니다. 밤마다 한 명을 유혹해서 그 사람의 그날 밤 능력을 막습니다.',
     '마피아 팀입니다. 밤마다 한 명을 유혹해서 그 사람의 그날 밤 능력을 막습니다.\n마피아가 누구인지는 모릅니다. 마피아를 유혹하면 그날 밤 마피아 공격이 무효가 됩니다.\n경찰 조사 · 처형 · 마피아 공격으로 죽으면 시민으로 나옵니다(스나이퍼에게 죽으면 마피아, 기자에게는 마담).',
   ] },
-  lovers: { guide: ['시민 팀입니다. 두 사람은 연인입니다.\n한 명이 마피아에게 죽으면 다른 한 명도 같이 죽습니다.'] },
+  lovers: { guide: [
+    '시민 팀입니다. 두 사람은 연인입니다.\n한 명이 마피아에게 죽으면 다른 한 명도 같이 죽습니다.',
+    '시민 팀입니다. 두 사람은 연인입니다.\n한 명이 마피아 공격이나 낮 처형으로 죽으면 다른 한 명도 같이 죽습니다.',
+  ] },
+  sniper: { guide: ['시민 팀입니다. 밤에 한 명을 저격합니다.\n마피아를 맞히면 그 마피아가 죽고, 시민을 맞히면 본인이 죽습니다.'] },
+  veteran: { guide: ['시민 팀입니다. 방탄유리가 있어서 마피아의 공격을 한 번 막습니다.'] },
+};
+// 예전 기본 멘트를 그대로 쓰고 있으면 새 멘트로
+const OLD_SCRIPTS = {
+  nightKill: ['밤사이 {name} 님이 마피아에게 살해당했습니다.'],
+  snipeFail: ['밤사이 총성이 울렸습니다. {name} 님이 사망했습니다.'],
 };
 function upgradeTexts(r, d) {
   const old = OLD_TEXTS[r.id];
@@ -61,7 +71,7 @@ export function normalizeSettings(s) {
   delete out.scripts.revealLine; // 정체 문장은 시민 · 마피아 두 가지로 나뉘었다(revealCitizen · revealMafia)
   out.roles = Array.isArray(s.roles) && s.roles.length ? s.roles : d.roles;
   // 예전 기본 멘트를 그대로 쓰고 있으면 새 멘트로
-  if (out.scripts.nightKill === '밤사이 {name} 님이 마피아에게 살해당했습니다.') out.scripts.nightKill = d.scripts.nightKill;
+  for (const [k, list] of Object.entries(OLD_SCRIPTS)) if (list.includes(out.scripts[k])) out.scripts[k] = d.scripts[k];
   out.roles = out.roles.map((r) => upgradeTexts(r, d)).map((r) => ({
     ...r,
     count: Math.max(0, Number(r.count) || 0),

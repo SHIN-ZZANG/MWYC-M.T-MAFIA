@@ -137,7 +137,7 @@ function chainLovers(g, deaths, healed = new Set(), saved = []) {
   while (added) {
     added = false;
     for (const r of S.roles.filter((x) => x.ability === 'lovers')) {
-      const first = deaths.find((d) => d.p.roleId === r.id && (d.cause === 'mafia' || d.cause === 'execution'));
+      const first = deaths.find((d) => d.p.roleId === r.id && ['mafia', 'snipe', 'execution'].includes(d.cause));
       if (!first) continue;
       for (const m of aliveMembers(g, r.id)) {
         if (deaths.some((d) => d.p === m) || saved.some((s) => s.p === m)) continue;
@@ -151,7 +151,7 @@ function chainLovers(g, deaths, healed = new Set(), saved = []) {
 // 처형 · 밤 사망 공개는 팀만(고정). 마담도 팀(마피아)으로만 공개한다.
 // 마피아 공격으로 죽은 사람은 정체를 밝히지 않는다(마담이 마피아에게 죽어도 드러나지 않게)
 function revealSuffix(g, p, cause) {
-  if (cause === 'mafia') return [];
+  if (cause === 'mafia' || cause === 'snipeFail') return []; // 스나이퍼 자결은 멘트로 이미 드러난다
   const S = g.settings.scripts;
   const tpl = teamOf(g, p) === 'mafia'
     ? (S.revealMafia ?? '{name} 님은 마피아였습니다.')
@@ -211,9 +211,9 @@ export function startNight(g) {
   g.nightActions = {};
   g.nightStep = 0;
   g.nightPlan = [{ kind: 'intro' }];
-  // 마담을 먼저 부른다 — 마피아를 유혹했으면 마피아 차례에 바로 무효 처리를 보여 줄 수 있게
-  const order = [...S.roles.filter((r) => r.ability === 'seduce'), ...S.roles.filter((r) => r.ability !== 'seduce')];
-  for (const r of order) {
+  // 설정의 역할 순서대로 부른다(기본: 마피아 → 마담 → 의사 → 경찰 → 스나이퍼 → 기자).
+  // 밤 행동은 아침에 한꺼번에 처리하므로 부르는 순서는 결과에 영향이 없다
+  for (const r of S.roles) {
     if (!roleWakes(g, r) || members(g, r.id).length === 0) continue;
     if (!aliveMembers(g, r.id).length && !S.callDeadRoles) continue;
     g.nightPlan.push({ kind: 'role', roleId: r.id });
@@ -355,6 +355,7 @@ export function resolveNight(g) {
   }
 
   // 저격
+  const snipeSuicides = [];
   for (const r of byAb('snipe')) {
     const t = act[r.id];
     if (isBlocked(g, r.id)) {
@@ -363,32 +364,43 @@ export function resolveNight(g) {
       continue;
     }
     if (!t) continue;
-    // 행동은 받지만, 같은 밤 마피아에게 죽었으면(치료 · 방탄 없이) 저격은 무효 — 오발 사망도 없다
+    // 행동은 받지만, 같은 밤 마피아에게 죽었으면(치료 · 방탄 없이) 저격은 무효 — 맞은 사람도 안 죽고 기회도 안 쓴다
     const shooters = aliveMembers(g, r.id);
     if (shooters.every((s) => deaths.some((d) => d.p === s && d.cause === 'mafia'))) {
       report.push(`${actor(r)} 저격 → ${whoId(t)}: 마피아에게 당해 무효`);
       continue;
     }
+    // 방아쇠를 당겼으면 결과와 상관없이 기회를 쓴다
     const st = g.roleState[r.id];
     if (st.usesLeft !== null) st.usesLeft = Math.max(0, st.usesLeft - 1);
     const p = playerById(g, t);
-    if (teamOf(g, p) === 'mafia') {
-      if (healed.has(t)) {
-        // 살아남았으니 아무것도 발표하지 않는다 — 발표하면 마피아인 것이 드러난다
-        report.push(`${actor(r)} 저격 → ${who(p)}: 의사가 살림 (발표 안 함)`);
-      } else {
-        if (!deaths.some((d) => d.p === p)) deaths.push({ p, cause: 'snipe' });
-        report.push(`${actor(r)} 저격 → ${who(p)}: 사살`);
-      }
+    const pr = roleOf(g, p);
+    if (deaths.some((d) => d.p === p)) {
+      // 같은 밤 마피아에게 이미 죽은 사람 — 저격 효과 없음, 스나이퍼도 산다
+      report.push(`${actor(r)} 저격 → ${who(p)}: 이미 마피아에게 사망해 효과 없음`);
+    } else if (healed.has(t)) {
+      // 마피아든 시민이든 같은 문구로 발표한다 — 정체가 드러나지 않게. 의사가 살렸으면 방탄은 쓰지 않는다
+      lines.push(fill(S.scripts.snipeSaved ?? DEFAULT_SCRIPTS.snipeSaved, { name: p.name }));
+      report.push(`${actor(r)} 저격 → ${who(p)}: 의사가 살림`);
+    } else if (pr.ability === 'shield' && p.shield > 0) {
+      p.shield -= 1;
+      lines.push(fill(S.scripts.snipeBlock ?? DEFAULT_SCRIPTS.snipeBlock, { name: p.name }));
+      report.push(`${actor(r)} 저격 → ${who(p)}: 방탄으로 막음 (남은 방탄 ${p.shield})`);
+    } else if (teamOf(g, p) === 'mafia') {
+      deaths.push({ p, cause: 'snipe' });
+      report.push(`${actor(r)} 저격 → ${who(p)}: 사살`);
     } else {
+      // 시민을 쏘면 그 시민이 죽고, 스나이퍼도 죄책감에 따라 죽는다(발표는 연인 동반 사망 뒤에)
+      deaths.push({ p, cause: 'snipe' });
       const shooter = aliveMembers(g, r.id)[0];
-      if (!deaths.some((d) => d.p === shooter)) deaths.push({ p: shooter, cause: 'snipeFail' });
-      report.push(`${actor(r)} 저격 → ${who(p)}: 오발, ${who(shooter)} 사망`);
+      if (!deaths.some((d) => d.p === shooter)) snipeSuicides.push({ p: shooter, cause: 'snipeFail' });
+      report.push(`${actor(r)} 저격 → ${who(p)}: 시민 사망, ${who(shooter)} 자결`);
     }
   }
 
   const loverSaved = [];
   chainLovers(g, deaths, healed, loverSaved);
+  for (const s of snipeSuicides) if (!deaths.some((d) => d.p === s.p)) deaths.push(s);
 
   // 사망 처리와 발표 문장
   const causeTpl = { mafia: 'nightKill', snipe: 'snipeKill', snipeFail: 'snipeFail', lover: 'loverDeath' };
